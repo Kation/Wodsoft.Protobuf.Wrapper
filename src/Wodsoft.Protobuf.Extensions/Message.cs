@@ -10,6 +10,8 @@ namespace Wodsoft.Protobuf
     public abstract class Message<T> : IMessage, IBufferMessage
         where T : class, new()
     {
+        internal static Type MessageType;
+
         public Message()
         {
             Source = new T();

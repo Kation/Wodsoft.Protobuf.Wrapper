@@ -30,9 +30,12 @@ namespace Wodsoft.Protobuf
         }
 
         public static Type GetMessageType<T>()
-            where T : class
+            where T : class, new()
         {
-            return GetMessageType(typeof(T));
+            var type = Message<T>.MessageType;
+            if (type == null)
+                type = GetMessageType(typeof(T));
+            return type;
         }
 
         public static Type GetMessageType(Type type)
@@ -48,7 +51,9 @@ namespace Wodsoft.Protobuf
                 BuildMethod(typeBuilder, baseType, type, properties, out var initFields);
                 var constructor = BuildConstructor(typeBuilder, baseType, type, initFields);
                 BuildEmptyConstructor(typeBuilder, baseType, constructor);
-                return typeBuilder.CreateTypeInfo();
+                var messageType = typeBuilder.CreateTypeInfo();
+                typeof(Message<>).MakeGenericType(t).GetField("MessageType", BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, messageType);
+                return messageType;
             });
         }
 
