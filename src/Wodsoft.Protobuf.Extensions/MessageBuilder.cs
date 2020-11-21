@@ -137,8 +137,7 @@ namespace Wodsoft.Protobuf
 
                 readILGenerator.Emit(OpCodes.Ldloc, readTagVariable);
                 readILGenerator.Emit(OpCodes.Ldc_I4_0);
-                readILGenerator.Emit(OpCodes.Ceq);
-                readILGenerator.Emit(OpCodes.Brtrue, readEnd);
+                readILGenerator.Emit(OpCodes.Beq, readEnd);
 
                 foreach (var property in properties)
                 {
@@ -153,6 +152,7 @@ namespace Wodsoft.Protobuf
                     readILGenerator.Emit(OpCodes.Ldc_I4, (int)tag);
                     readILGenerator.Emit(OpCodes.Beq, readTagLabels[property]);
                 }
+                readILGenerator.Emit(OpCodes.Br, readEnd);
             }
 
             index = 0;
@@ -568,8 +568,14 @@ namespace Wodsoft.Protobuf
                         }
                         //Read
                         {
+                            //IL: this.Source.{Property} = value;
+                            readILGenerator.Emit(OpCodes.Ldarg_0);
+                            readILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
                             readILGenerator.Emit(OpCodes.Ldarg_1);
                             readILGenerator.Emit(OpCodes.Callvirt, _ReadMethodMap[property.PropertyType]);
+                            if (property.PropertyType == typeof(byte[]))
+                                readILGenerator.Emit(OpCodes.Call, typeof(ByteString).GetMethod("ToByteArray"));
+                            readILGenerator.Emit(OpCodes.Callvirt, property.SetMethod);
                         }
                     }
                     else
@@ -639,6 +645,7 @@ namespace Wodsoft.Protobuf
 
             readILGenerator.MarkLabel(readEnd);
             readILGenerator.Emit(OpCodes.Ret);
+            writeILGenerator.Emit(OpCodes.Ret);
 
             initFields = speciallyFields.ToArray();
         }
@@ -743,7 +750,7 @@ namespace Wodsoft.Protobuf
 
         private static readonly Dictionary<Type, MethodInfo> _WriteMethodMap = new Dictionary<Type, MethodInfo>
         {
-            { typeof(double), typeof(WriteContext).GetMethod(nameof(WriteContext.WriteBool)) },
+            { typeof(double), typeof(WriteContext).GetMethod(nameof(WriteContext.WriteDouble)) },
             { typeof(float), typeof(WriteContext).GetMethod(nameof(WriteContext.WriteFloat)) },
             { typeof(int), typeof(WriteContext).GetMethod(nameof(WriteContext.WriteInt32)) },
             { typeof(long), typeof(WriteContext).GetMethod(nameof(WriteContext.WriteInt64)) },

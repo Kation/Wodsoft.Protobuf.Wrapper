@@ -2,6 +2,7 @@
 using Google.Protobuf.Reflection;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 
 namespace Wodsoft.Protobuf
@@ -28,6 +29,38 @@ namespace Wodsoft.Protobuf
                     throw new ArgumentNullException(nameof(Source));
                 SourceValue = value;
             }
+        }
+
+        //public void Serialize(Stream stream)
+        //{
+        //    using (CodedOutputStream cos = new CodedOutputStream(stream, true))
+        //    {
+        //        cos.WriteRawMessage(this);
+        //    }
+        //}
+
+        public static void Serialize(Stream stream, T source)
+        {
+            Serialize(new CodedOutputStream(stream, true), source);
+        }
+
+        public static void Serialize(CodedOutputStream output, T source)
+        {
+            MessageBase<T> message = source;
+            output.WriteRawMessage(message);
+            output.Flush();
+        }
+
+        public static T Deserialize(Stream stream)
+        {
+            return Deserialize(new CodedInputStream(stream, true));
+        }
+
+        public static T Deserialize(CodedInputStream input)
+        {
+            MessageBase<T> message = (MessageBase<T>)Activator.CreateInstance(MessageBuilder.GetMessageType<T>());
+            input.ReadRawMessage(message);
+            return message.Source;
         }
 
         MessageDescriptor IMessage.Descriptor => null;
