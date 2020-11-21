@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Wodsoft.Protobuf.Extensions.Test
 {
-    public class MessageBaseTest
+    public class MessageTest
     {
         [Fact]
         public void Convert_Test()
@@ -18,7 +18,7 @@ namespace Wodsoft.Protobuf.Extensions.Test
                 StringValue = "This is a simply model"
             };
 
-            MessageBase<SimplyModel> message = model;
+            Message<SimplyModel> message = model;
 
             Assert.Equal(model, message.Source);
 

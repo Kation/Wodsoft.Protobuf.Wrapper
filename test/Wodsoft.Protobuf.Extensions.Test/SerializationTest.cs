@@ -27,10 +27,10 @@ namespace Wodsoft.Protobuf.Extensions.Test
             };
 
             MemoryStream stream = new MemoryStream();
-            MessageBase<SimplyModel>.Serialize(stream, model);
+            Message<SimplyModel>.Serialize(stream, model);
 
             stream.Position = 0;
-            var model2 = MessageBase<SimplyModel>.Deserialize(stream);
+            var model2 = Message<SimplyModel>.Deserialize(stream);
 
             Assert.Equal(model2.IntValue, model.IntValue);
             Assert.Equal(model2.DoubleValue, model.DoubleValue);

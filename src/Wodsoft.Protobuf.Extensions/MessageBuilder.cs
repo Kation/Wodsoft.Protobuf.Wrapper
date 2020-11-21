@@ -39,7 +39,7 @@ namespace Wodsoft.Protobuf
         {
             return _TypeCache.GetOrAdd(type, t =>
             {
-                var baseType = typeof(MessageBase<>).MakeGenericType(type);
+                var baseType = typeof(Message<>).MakeGenericType(type);
                 var moduleBuilder = _ModuleBuilder;
                 var typeBuilder = moduleBuilder.DefineType(type.Namespace + ".Proxy_" + type.Name,
                     TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.AutoClass | TypeAttributes.AnsiClass | TypeAttributes.BeforeFieldInit,

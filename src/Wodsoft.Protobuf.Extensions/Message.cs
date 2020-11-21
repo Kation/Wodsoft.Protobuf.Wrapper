@@ -7,15 +7,15 @@ using System.Text;
 
 namespace Wodsoft.Protobuf
 {
-    public abstract class MessageBase<T> : IMessage, IBufferMessage
+    public abstract class Message<T> : IMessage, IBufferMessage
         where T : class, new()
     {
-        public MessageBase()
+        public Message()
         {
             Source = new T();
         }
 
-        public MessageBase(T source)
+        public Message(T source)
         {
             Source = source;
         }
@@ -46,7 +46,7 @@ namespace Wodsoft.Protobuf
 
         public static void Serialize(CodedOutputStream output, T source)
         {
-            MessageBase<T> message = source;
+            Message<T> message = source;
             output.WriteRawMessage(message);
             output.Flush();
         }
@@ -58,7 +58,7 @@ namespace Wodsoft.Protobuf
 
         public static T Deserialize(CodedInputStream input)
         {
-            MessageBase<T> message = (MessageBase<T>)Activator.CreateInstance(MessageBuilder.GetMessageType<T>());
+            Message<T> message = (Message<T>)Activator.CreateInstance(MessageBuilder.GetMessageType<T>());
             input.ReadRawMessage(message);
             return message.Source;
         }
@@ -71,16 +71,16 @@ namespace Wodsoft.Protobuf
 
         protected abstract void Read(ref ParseContext parser);
 
-        public static implicit operator MessageBase<T>(T source)
+        public static implicit operator Message<T>(T source)
         {
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
             var type = MessageBuilder.GetMessageType<T>();
-            var message = (MessageBase<T>)Activator.CreateInstance(type, source);
+            var message = (Message<T>)Activator.CreateInstance(type, source);
             return message;
         }
 
-        public static implicit operator T(MessageBase<T> message)
+        public static implicit operator T(Message<T> message)
         {
             if (message == null)
                 throw new ArgumentNullException(nameof(message));
