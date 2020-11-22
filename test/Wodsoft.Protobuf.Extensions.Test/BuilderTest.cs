@@ -11,6 +11,7 @@ namespace Wodsoft.Protobuf.Extensions.Test
         {
             MessageBuilder.GetMessageType<SimplyModel>();
             MessageBuilder.GetMessageType<EnumModel>();
+            MessageBuilder.GetMessageType<CollectionModel>();
 
             var generator = new Lokad.ILPack.AssemblyGenerator();
             var bytes = generator.GenerateAssemblyBytes(MessageBuilder.GetAssembly());

@@ -1,6 +1,7 @@
 ﻿using Google.Protobuf;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Text;
 using Xunit;
@@ -64,7 +65,7 @@ namespace Wodsoft.Protobuf.Extensions.Test
             };
 
             MemoryStream stream = new MemoryStream();
-            Message<EnumModel>.Serialize(stream, model);
+            Message.Serialize(stream, model);
 
             stream.Position = 0;
             var model2 = Message<EnumModel>.Deserialize(stream);
@@ -77,6 +78,72 @@ namespace Wodsoft.Protobuf.Extensions.Test
             Assert.Equal(model2.UInt16Enum, model.UInt16Enum);
             Assert.Equal(model2.UInt32Enum, model.UInt32Enum);
             Assert.Equal(model2.UInt64Enum, model.UInt64Enum);
+        }
+
+        [Fact]
+        public void Collection_Class_Test()
+        {
+            CollectionModel model = new CollectionModel();
+            model.StringList = new List<string>();
+            model.StringList.Add("1");
+            model.StringList.Add("2");
+            model.StringList.Add("3");
+            model.StringList2 = new List<string>();
+            model.StringList2.Add("4");
+            model.StringList2.Add("5");
+            model.StringList2.Add("6");
+            model.IntList = new List<int>();
+            model.IntList.Add(10);
+            model.IntList.Add(20);
+            model.IntList.Add(30);
+            model.NullableIntList = new List<int?>();
+            model.NullableIntList.Add(50);
+            model.NullableIntList.Add(6);
+            model.NullableIntList.Add(-9);
+            model.ByteList = new List<byte>();
+            model.ByteList.Add(23);
+            model.ByteList.Add(45);
+            model.NullableByteList = new List<byte?>();
+            model.NullableByteList.Add(123);
+            model.NullableByteList.Add(254);
+            model.NullableByteList.Add(0);
+            model.SByteCollection = new List<sbyte>();
+            model.SByteCollection.Add(-45);
+            model.SByteCollection.Add(21);
+            model.SByteCollection2 = new Collection<sbyte>();
+            model.SByteCollection2.Add(-87);
+            model.SByteCollection2.Add(88);
+            model.NullableShortCollection = new List<short?>();
+            model.NullableShortCollection.Add(-8752);
+            model.NullableShortCollection.Add(5782);
+            model.NullableShortCollection2 = new Collection<short?>();
+            model.NullableShortCollection2.Add(-4278);
+            model.NullableShortCollection2.Add(7886);
+            model.UShortArray = new ushort[] { 16588, 65521 };
+            model.NullableUShortArray = new ushort?[] { 32556, 1565 };
+            model.LongArray = new long[] { 16581231238, 6545232521 };
+            model.NullableLongArray = new long?[] { 325512312341232346, 1512312312433443465 };
+
+            MemoryStream stream = new MemoryStream();
+            Message.Serialize(stream, model);
+
+            stream.Position = 0;
+            var model2 = Message<CollectionModel>.Deserialize(stream);
+
+            Assert.Equal(model.StringList, model2.StringList);
+            Assert.Equal(model.StringList2, model2.StringList2);
+            Assert.Equal(model.IntList, model2.IntList);
+            Assert.Equal(model.NullableIntList, model2.NullableIntList);
+            Assert.Equal(model.ByteList, model2.ByteList);
+            Assert.Equal(model.NullableByteList, model2.NullableByteList);
+            Assert.Equal(model.SByteCollection, model2.SByteCollection);
+            Assert.Equal(model.SByteCollection2, model2.SByteCollection2);
+            Assert.Equal(model.NullableShortCollection, model2.NullableShortCollection);
+            Assert.Equal(model.NullableShortCollection2, model2.NullableShortCollection2);
+            Assert.Equal<ushort>(model.UShortArray, model2.UShortArray);
+            Assert.Equal<ushort?>(model.NullableUShortArray, model2.NullableUShortArray);
+            Assert.Equal<long>(model.LongArray, model2.LongArray);
+            Assert.Equal<long?>(model.NullableLongArray, model2.NullableLongArray);
         }
     }
 }

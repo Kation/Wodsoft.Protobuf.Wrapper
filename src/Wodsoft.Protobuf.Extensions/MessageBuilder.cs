@@ -76,7 +76,6 @@ namespace Wodsoft.Protobuf
             ilGenerator.Emit(OpCodes.Ldarg_0);
             ilGenerator.Emit(OpCodes.Ldarg_1);
             ilGenerator.Emit(OpCodes.Call, baseType.GetConstructor(new Type[] { objectType }));
-            ilGenerator.Emit(OpCodes.Ret);
 
             foreach (var field in initFields)
             {
@@ -84,7 +83,7 @@ namespace Wodsoft.Protobuf
                 ilGenerator.Emit(OpCodes.Newobj, field.FieldType.GetConstructor(Array.Empty<Type>()));
                 ilGenerator.Emit(OpCodes.Stfld, field);
             }
-
+            ilGenerator.Emit(OpCodes.Ret);
             return constructorBuilder;
         }
 
@@ -120,8 +119,6 @@ namespace Wodsoft.Protobuf
         MethodAttributes.RTSpecialName | MethodAttributes.Static, CallingConventions.Standard, null);
             var staticIlGenerator = staticConstructorBuilder.GetILGenerator();
 
-            staticIlGenerator.Emit(OpCodes.Ret);
-
             var sourceFieldInfo = baseType.GetField("SourceValue", BindingFlags.NonPublic | BindingFlags.Instance);
 
             int index = 0;
@@ -156,9 +153,27 @@ namespace Wodsoft.Protobuf
                     readILGenerator.Emit(OpCodes.Ldloc, readTagVariable);
                     readILGenerator.Emit(OpCodes.Ldc_I4, (int)tag);
                     readILGenerator.Emit(OpCodes.Beq, readTagLabels[property]);
+                    if (property.PropertyType.IsGenericType)
+                    {
+                        var type = property.PropertyType.GetGenericTypeDefinition();
+                        if (type == typeof(RepeatedField<>) || type == typeof(IList<>) || type == typeof(ICollection<>) || type == typeof(List<>) || type == typeof(Collection<>))
+                        {
+                            type = property.PropertyType.GetGenericArguments()[0];
+                            type = Nullable.GetUnderlyingType(type) ?? type;
+                            if (_ValueTypes.Contains(type))
+                            {
+
+                                readILGenerator.Emit(OpCodes.Ldloc, readTagVariable);
+                                readILGenerator.Emit(OpCodes.Ldc_I4, (int)WireFormat.MakeTag(index, WireFormat.WireType.Varint));
+                                readILGenerator.Emit(OpCodes.Beq, readTagLabels[property]);
+                            }
+                        }
+                    }
                 }
-                readILGenerator.Emit(OpCodes.Br, readEnd);
+                readILGenerator.Emit(OpCodes.Br, readWhileStart);
             }
+
+            List<Tuple<FieldInfo, PropertyInfo, Type>> collectionProperties = new List<Tuple<FieldInfo, PropertyInfo, Type>>();
 
             index = 0;
             foreach (var property in properties)
@@ -341,7 +356,10 @@ namespace Wodsoft.Protobuf
                     Type elementType = null;
                     Type elementType2 = null;
                     if (property.PropertyType.IsArray)
+                    {
                         isCollection = true;
+                        elementType = property.PropertyType.GetElementType();
+                    }
                     else if (property.PropertyType.IsGenericType)
                     {
                         var genericType = property.PropertyType.GetGenericTypeDefinition();
@@ -364,6 +382,11 @@ namespace Wodsoft.Protobuf
 
                     if (isCollection)
                     {
+                        var sourceElementType = elementType;
+                        if (elementType == typeof(byte) || elementType == typeof(sbyte) || elementType == typeof(short) || elementType == typeof(ushort))
+                            elementType = typeof(int);
+                        if (elementType == typeof(byte?) || elementType == typeof(sbyte?) || elementType == typeof(short?) || elementType == typeof(ushort?))
+                            elementType = typeof(int?);
                         var collectionType = typeof(RepeatedField<>).MakeGenericType(elementType);
 
                         var codecField = typeBuilder.DefineField("_Codec_" + property.Name, typeof(FieldCodec<>).MakeGenericType(elementType), FieldAttributes.Private | FieldAttributes.Static);
@@ -372,8 +395,26 @@ namespace Wodsoft.Protobuf
                             //IL: _Codec_{PropertyName} = FieldCodec.For{XXX}(tag);
                             staticIlGenerator.Emit(OpCodes.Ldc_I4, (int)tag);
                             if (_ValueTypes.Contains(elementType))
-                                //IL: FieldCodec.ForStructWrapper(tag)
-                                staticIlGenerator.Emit(OpCodes.Call, typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForStructWrapper)).MakeGenericMethod(elementType));
+                            {
+                                //IL: FieldCodec.For{XXX}(tag)
+                                staticIlGenerator.Emit(OpCodes.Call, _CodecMethodMap[elementType]);
+                            }
+                            else if (_NullableValueTypes.Contains(elementType))
+                            {
+                                var type = Nullable.GetUnderlyingType(elementType);
+                                //if (type == typeof(byte) || type == typeof(sbyte) || type == typeof(short) || type == typeof(ushort))
+                                //    type = typeof(int);
+                                //IL: FieldCodec.ForStructWrapper<>(tag)
+                                staticIlGenerator.Emit(OpCodes.Call, typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForStructWrapper), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(uint) }, null).MakeGenericMethod(type));
+                            }
+                            else if (elementType == typeof(string))
+                            {
+                                staticIlGenerator.Emit(OpCodes.Call, typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForString), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(uint) }, null));
+                            }
+                            else if (elementType == typeof(ByteString) || elementType == typeof(byte[]))
+                            {
+                                staticIlGenerator.Emit(OpCodes.Call, typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForBytes), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(uint) }, null));
+                            }
                             else
                             {
                                 //IL: FieldCodec.ForMessage(tag, {elementType}.Parser);
@@ -411,13 +452,35 @@ namespace Wodsoft.Protobuf
 
                             //ComputeSize
                             {
-                                GenerateAddCollection(computeSizeILGenerator, computeSizeValueVariable, field);
+                                if (sourceElementType == elementType)
+                                {
+                                    GenerateAddCollection(computeSizeILGenerator, computeSizeValueVariable, field);
+                                }
+                                else
+                                {
+                                    var enumerableVariable = computeSizeILGenerator.DeclareLocal(typeof(IEnumerable<int>));
+                                    computeSizeILGenerator.Emit(OpCodes.Ldloc, computeSizeValueVariable);
+                                    computeSizeILGenerator.Emit(OpCodes.Call, typeof(MessageHelper).GetMethod("ConvertToInt", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(IEnumerable<>).MakeGenericType(sourceElementType) }, null));
+                                    computeSizeILGenerator.Emit(OpCodes.Stloc, enumerableVariable);
+                                    GenerateAddCollection(computeSizeILGenerator, enumerableVariable, field);
+                                }
                                 computeSizeILGenerator.Emit(OpCodes.Ldarg_0);
                                 computeSizeILGenerator.Emit(OpCodes.Ldfld, field);
                             }
                             //Write
                             {
-                                GenerateAddCollection(writeILGenerator, writeValueVariable, field);
+                                if (sourceElementType == elementType)
+                                {
+                                    GenerateAddCollection(writeILGenerator, writeValueVariable, field);
+                                }
+                                else
+                                {
+                                    var enumerableVariable = writeILGenerator.DeclareLocal(Nullable.GetUnderlyingType(sourceElementType) == null ? typeof(IEnumerable<int>) : typeof(IEnumerable<int?>));
+                                    writeILGenerator.Emit(OpCodes.Ldloc, writeValueVariable);
+                                    writeILGenerator.Emit(OpCodes.Call, typeof(MessageHelper).GetMethod("ConvertToInt", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(IEnumerable<>).MakeGenericType(sourceElementType) }, null));
+                                    writeILGenerator.Emit(OpCodes.Stloc, enumerableVariable);
+                                    GenerateAddCollection(writeILGenerator, enumerableVariable, field);
+                                }
                                 writeILGenerator.Emit(OpCodes.Ldarg_0);
                                 writeILGenerator.Emit(OpCodes.Ldfld, field);
                             }
@@ -427,6 +490,8 @@ namespace Wodsoft.Protobuf
                                 readILGenerator.Emit(OpCodes.Ldarg_0);
                                 readILGenerator.Emit(OpCodes.Ldfld, field);
                             }
+
+                            collectionProperties.Add(new Tuple<FieldInfo, PropertyInfo, Type>(field, property, sourceElementType));
                         }
                         //ComputeSize
                         {
@@ -442,7 +507,7 @@ namespace Wodsoft.Protobuf
                             //IL: WriteTo(ref writer, _Codec_{PropertyName});
                             writeILGenerator.Emit(OpCodes.Ldarg_1);
                             writeILGenerator.Emit(OpCodes.Ldsfld, codecField);
-                            writeILGenerator.Emit(OpCodes.Callvirt, collectionType.GetMethod("WriteTo", new Type[] { typeof(WriteContext), typeof(FieldCodec<>).MakeGenericType(elementType) }));
+                            writeILGenerator.Emit(OpCodes.Callvirt, collectionType.GetMethod("WriteTo", new Type[] { typeof(WriteContext).MakeByRefType(), typeof(FieldCodec<>).MakeGenericType(elementType) }));
                         }
                         //Read
                         {
@@ -655,6 +720,45 @@ namespace Wodsoft.Protobuf
                 readILGenerator.Emit(OpCodes.Br, readWhileStart);
             }
 
+            readILGenerator.MarkLabel(readEnd);
+
+            foreach (var item in collectionProperties)
+            {
+                readILGenerator.Emit(OpCodes.Ldarg_0);
+                readILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
+                readILGenerator.Emit(OpCodes.Ldarg_0);
+                readILGenerator.Emit(OpCodes.Ldfld, item.Item1);
+                var type = item.Item3;
+                var nullable = Nullable.GetUnderlyingType(type) != null;
+                if (nullable)
+                    type = Nullable.GetUnderlyingType(type);
+                if (type == typeof(byte) || type == typeof(sbyte) || type == typeof(short) || type == typeof(ushort))
+                {
+                    readILGenerator.Emit(OpCodes.Call, typeof(MessageHelper).GetMethod("ConvertTo" + type.Name, BindingFlags.Public | BindingFlags.Static, null, new Type[] { nullable ? typeof(RepeatedField<int?>) : typeof(RepeatedField<int>) }, null));
+                    if (item.Item2.PropertyType.IsArray)
+                    {
+                        readILGenerator.Emit(OpCodes.Call, typeof(System.Linq.Enumerable).GetMethod("ToArray").MakeGenericMethod(item.Item3));
+                    }
+                    else
+                    {
+                        readILGenerator.Emit(OpCodes.Newobj, typeof(List<>).MakeGenericType(item.Item3).GetConstructor(new Type[] { typeof(IEnumerable<>).MakeGenericType(item.Item3) }));
+                        if (item.Item2.PropertyType == typeof(Collection<>).MakeGenericType(item.Item3))
+                            readILGenerator.Emit(OpCodes.Newobj, typeof(Collection<>).MakeGenericType(item.Item3).GetConstructor(new Type[] { typeof(IList<>).MakeGenericType(item.Item3) }));
+                    }
+                }
+                else if (!item.Item2.PropertyType.IsAssignableFrom(item.Item1.FieldType))
+                {
+                    if (item.Item2.PropertyType.IsArray)
+                        readILGenerator.Emit(OpCodes.Call, typeof(System.Linq.Enumerable).GetMethod("ToArray").MakeGenericMethod(item.Item3));
+                    else if (item.Item2.PropertyType.GetGenericTypeDefinition() == typeof(List<>))
+                        readILGenerator.Emit(OpCodes.Newobj, item.Item2.PropertyType.GetConstructor(new Type[] { typeof(IEnumerable<>).MakeGenericType(item.Item3) }));
+                    else
+                        readILGenerator.Emit(OpCodes.Newobj, item.Item2.PropertyType.GetConstructor(new Type[] { typeof(IList<>).MakeGenericType(item.Item3) }));
+
+                }
+                readILGenerator.Emit(OpCodes.Callvirt, item.Item2.SetMethod);
+            }
+
             //ComputeSize
             {
                 computeSizeILGenerator.Emit(OpCodes.Ldloc, sizeVariable);
@@ -671,9 +775,9 @@ namespace Wodsoft.Protobuf
                 calculateSizeILGenerator.Emit(OpCodes.Ret);
             }
 
-            readILGenerator.MarkLabel(readEnd);
             readILGenerator.Emit(OpCodes.Ret);
             writeILGenerator.Emit(OpCodes.Ret);
+            staticIlGenerator.Emit(OpCodes.Ret);
 
             initFields = speciallyFields.ToArray();
         }
@@ -733,19 +837,36 @@ namespace Wodsoft.Protobuf
 
         private static void GenerateAddCollection(ILGenerator ilGenerator, LocalBuilder valueVariable, FieldInfo field)
         {
+            var skip = ilGenerator.DefineLabel();
+            //IL: if (collection != value)
+            ilGenerator.Emit(OpCodes.Ldarg_0);
+            ilGenerator.Emit(OpCodes.Ldfld, field);
+            ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
+            ilGenerator.Emit(OpCodes.Beq, skip);
+
             //IL: collection.Clear();
             ilGenerator.Emit(OpCodes.Ldarg_0);
             ilGenerator.Emit(OpCodes.Ldfld, field);
             ilGenerator.Emit(OpCodes.Call, field.FieldType.GetMethod("Clear"));
+
             //IL: collection.AddRange(value);
             ilGenerator.Emit(OpCodes.Ldarg_0);
             ilGenerator.Emit(OpCodes.Ldfld, field);
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
             ilGenerator.Emit(OpCodes.Callvirt, field.FieldType.GetMethod("AddRange"));
+
+            ilGenerator.MarkLabel(skip);
         }
 
         private static void GenerateAddDictionary(ILGenerator ilGenerator, LocalBuilder valueVariable, FieldInfo field)
         {
+            var skip = ilGenerator.DefineLabel();
+            //IL: if (dictionary != value)
+            ilGenerator.Emit(OpCodes.Ldarg_0);
+            ilGenerator.Emit(OpCodes.Ldfld, field);
+            ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
+            ilGenerator.Emit(OpCodes.Beq, skip);
+
             //IL: dictionary.Clear();
             ilGenerator.Emit(OpCodes.Ldarg_0);
             ilGenerator.Emit(OpCodes.Ldfld, field);
@@ -755,6 +876,8 @@ namespace Wodsoft.Protobuf
             ilGenerator.Emit(OpCodes.Ldfld, field);
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
             ilGenerator.Emit(OpCodes.Callvirt, field.FieldType.GetMethods().Where(t => t.Name == "Add").OrderBy(t => t.GetParameters().Length).First());
+
+            ilGenerator.MarkLabel(skip);
         }
 
 
@@ -785,6 +908,20 @@ namespace Wodsoft.Protobuf
             { typeof(bool), _ComputeBoolSizeMethodInfo },
             { typeof(string), _ComputeStringSizeMethodInfo },
             { typeof(ByteString), _ComputeBytesSizeMethodInfo },
+        };
+        private static readonly Dictionary<Type, MethodInfo> _CodecMethodMap = new Dictionary<Type, MethodInfo>
+        {
+            { typeof(byte), typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForInt32), BindingFlags.Public| BindingFlags.Static, null, new Type[]{ typeof(uint) }, null) },
+            { typeof(sbyte), typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForInt32), BindingFlags.Public| BindingFlags.Static, null, new Type[]{ typeof(uint) }, null) },
+            { typeof(short), typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForInt32), BindingFlags.Public| BindingFlags.Static, null, new Type[]{ typeof(uint) }, null) },
+            { typeof(ushort), typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForInt32), BindingFlags.Public| BindingFlags.Static, null, new Type[]{ typeof(uint) }, null) },
+            { typeof(double), typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForDouble), BindingFlags.Public| BindingFlags.Static, null, new Type[]{ typeof(uint) }, null) },
+            { typeof(float), typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForFloat), BindingFlags.Public| BindingFlags.Static, null, new Type[]{ typeof(uint) }, null) },
+            { typeof(int), typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForInt32), BindingFlags.Public| BindingFlags.Static, null, new Type[]{ typeof(uint) }, null) },
+            { typeof(long), typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForInt64), BindingFlags.Public| BindingFlags.Static, null, new Type[]{ typeof(uint) }, null) },
+            { typeof(uint), typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForUInt32), BindingFlags.Public| BindingFlags.Static, null, new Type[]{ typeof(uint) }, null) },
+            { typeof(ulong), typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForUInt64), BindingFlags.Public| BindingFlags.Static, null, new Type[]{ typeof(uint) }, null) },
+            { typeof(bool), typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForBool), BindingFlags.Public| BindingFlags.Static, null, new Type[]{ typeof(uint) }, null) },
         };
 
         #endregion
