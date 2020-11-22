@@ -10,6 +10,7 @@ namespace Wodsoft.Protobuf.Extensions.Test
         public void Create_Simply_Type_Test()
         {
             MessageBuilder.GetMessageType<SimplyModel>();
+            MessageBuilder.GetMessageType<EnumModel>();
 
             var generator = new Lokad.ILPack.AssemblyGenerator();
             var bytes = generator.GenerateAssemblyBytes(MessageBuilder.GetAssembly());

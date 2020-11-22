@@ -22,6 +22,12 @@ namespace Wodsoft.Protobuf.Extensions.Test
 
         public ulong UInt64Value { get; set; }
 
-        public byte ByteValue { get; set; }               
+        public byte ByteValue { get; set; }
+
+        public sbyte SByteValue { get; set; }
+
+        public short ShortValue { get; set; }
+
+        public ushort UShortValue { get; set; }
     }
 }

@@ -148,7 +148,7 @@ namespace Wodsoft.Protobuf
                 {
                     index++;
                     uint tag;
-                    if (_ValueTypes.Contains(property.PropertyType) || _NullableValueTypes.Contains(property.PropertyType))
+                    if (_ValueTypes.Contains(property.PropertyType) || _NullableValueTypes.Contains(property.PropertyType) || property.PropertyType.IsEnum || Nullable.GetUnderlyingType(property.PropertyType)?.IsEnum == true)
                         tag = WireFormat.MakeTag(index, WireFormat.WireType.Varint);
                     else
                         tag = WireFormat.MakeTag(index, WireFormat.WireType.LengthDelimited);
@@ -278,10 +278,33 @@ namespace Wodsoft.Protobuf
                         else if (type.IsEnum)
                         {
                             //IL: parser.ReadXXX();
+                            readILGenerator.Emit(OpCodes.Ldtoken, type);
+                            readILGenerator.Emit(OpCodes.Call, typeof(Type).GetMethod("GetTypeFromHandle", new Type[1] { typeof(RuntimeTypeHandle) }));
                             readILGenerator.Emit(OpCodes.Ldarg_1);
                             readILGenerator.Emit(OpCodes.Call, _ReadMethodMap[Enum.GetUnderlyingType(type)]);
+                            if (Enum.GetUnderlyingType(type) == typeof(byte) || Enum.GetUnderlyingType(type) == typeof(sbyte) || Enum.GetUnderlyingType(type) == typeof(short) || Enum.GetUnderlyingType(type) == typeof(ushort))
+                            {
+                                readILGenerator.Emit(OpCodes.Box, typeof(int));
+                                readILGenerator.Emit(OpCodes.Ldtoken, Enum.GetUnderlyingType(type));
+                                readILGenerator.Emit(OpCodes.Call, typeof(Type).GetMethod("GetTypeFromHandle", new Type[1] { typeof(RuntimeTypeHandle) }));
+                                readILGenerator.Emit(OpCodes.Call, typeof(Convert).GetMethod("ChangeType", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(object), typeof(Type) }, null));
+                                readILGenerator.Emit(OpCodes.Unbox_Any, Enum.GetUnderlyingType(type));
+                            }
+                            readILGenerator.Emit(OpCodes.Call, typeof(Enum).GetMethod("ToObject", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(Type), Enum.GetUnderlyingType(type) }, null));
+                            //readILGenerator.Emit(OpCodes.Ldtoken, type);
+                            //readILGenerator.Emit(OpCodes.Call, typeof(Type).GetMethod("GetTypeFromHandle", new Type[1] { typeof(RuntimeTypeHandle) }));
+                            //readILGenerator.Emit(OpCodes.Call, typeof(Convert).GetMethod("ChangeType", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(object), typeof(Type) }, null));
+                            readILGenerator.Emit(OpCodes.Unbox_Any, type);
+                        }
+                        else if (type == typeof(sbyte) || type == typeof(byte) || type == typeof(short) || type == typeof(ushort))
+                        {
+                            readILGenerator.Emit(OpCodes.Ldarg_1);
+                            readILGenerator.Emit(OpCodes.Call, _ReadMethodMap[type]);
+                            readILGenerator.Emit(OpCodes.Box, typeof(int));
                             readILGenerator.Emit(OpCodes.Ldtoken, type);
+                            readILGenerator.Emit(OpCodes.Call, typeof(Type).GetMethod("GetTypeFromHandle", new Type[1] { typeof(RuntimeTypeHandle) }));
                             readILGenerator.Emit(OpCodes.Call, typeof(Convert).GetMethod("ChangeType", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(object), typeof(Type) }, null));
+                            readILGenerator.Emit(OpCodes.Unbox_Any, type);
                         }
                         else
                         {
@@ -682,9 +705,22 @@ namespace Wodsoft.Protobuf
                 ilGenerator.Emit(OpCodes.Call, typeof(Google.Protobuf.WellKnownTypes.Duration).GetMethod("FromTimespan", BindingFlags.Public | BindingFlags.Static));
             else if (type.IsEnum)
             {
-                ilGenerator.Emit(OpCodes.Call, typeof(Convert).GetMethod("ChangeType", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(object), typeof(Type) }, null));
+                var enumType = type;
                 type = Enum.GetUnderlyingType(type);
+                if (type == typeof(byte) || type == typeof(sbyte) || type == typeof(short) || type == typeof(ushort))
+                {
+                    ilGenerator.Emit(OpCodes.Box, enumType);
+                    ilGenerator.Emit(OpCodes.Ldtoken, type);
+                    ilGenerator.Emit(OpCodes.Call, typeof(Type).GetMethod("GetTypeFromHandle", new Type[1] { typeof(RuntimeTypeHandle) }));
+                    ilGenerator.Emit(OpCodes.Call, typeof(Convert).GetMethod("ChangeType", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(object), typeof(Type) }, null));
+                    ilGenerator.Emit(OpCodes.Unbox_Any, type);
+                }
             }
+            //else if (type == typeof(sbyte) || type == typeof(byte) || type == typeof(short) || type == typeof(ushort))
+            //{
+            //    ilGenerator.Emit(OpCodes.Ldtoken, typeof(int));
+            //    ilGenerator.Emit(OpCodes.Call, typeof(Convert).GetMethod("ChangeType", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(object), typeof(Type) }, null));
+            //}
             return type;
         }
 
@@ -692,9 +728,7 @@ namespace Wodsoft.Protobuf
         {
             //IL:if (value == null) goto end;
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
-            ilGenerator.Emit(OpCodes.Ldnull);
-            ilGenerator.Emit(OpCodes.Ceq);
-            ilGenerator.Emit(OpCodes.Brtrue, end);
+            ilGenerator.Emit(OpCodes.Brfalse, end);
         }
 
         private static void GenerateAddCollection(ILGenerator ilGenerator, LocalBuilder valueVariable, FieldInfo field)
@@ -738,6 +772,10 @@ namespace Wodsoft.Protobuf
         private static readonly MethodInfo _ComputeMessageSizeMethodInfo = typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeMessageSize), BindingFlags.Static | BindingFlags.Public);
         private static readonly Dictionary<Type, MethodInfo> _ComputeMethodMap = new Dictionary<Type, MethodInfo>
         {
+            { typeof(byte), _ComputeInt32SizeMethodInfo },
+            { typeof(sbyte), _ComputeInt32SizeMethodInfo },
+            { typeof(short), _ComputeInt32SizeMethodInfo },
+            { typeof(ushort), _ComputeInt32SizeMethodInfo },
             { typeof(double), _ComputeDoubleSizeMethodInfo },
             { typeof(float), _ComputeFloatSizeMethodInfo },
             { typeof(int), _ComputeInt32SizeMethodInfo },
@@ -755,6 +793,10 @@ namespace Wodsoft.Protobuf
 
         private static readonly Dictionary<Type, MethodInfo> _WriteMethodMap = new Dictionary<Type, MethodInfo>
         {
+            { typeof(byte), typeof(WriteContext).GetMethod(nameof(WriteContext.WriteInt32)) },
+            { typeof(sbyte), typeof(WriteContext).GetMethod(nameof(WriteContext.WriteInt32)) },
+            { typeof(short), typeof(WriteContext).GetMethod(nameof(WriteContext.WriteInt32)) },
+            { typeof(ushort), typeof(WriteContext).GetMethod(nameof(WriteContext.WriteInt32)) },
             { typeof(double), typeof(WriteContext).GetMethod(nameof(WriteContext.WriteDouble)) },
             { typeof(float), typeof(WriteContext).GetMethod(nameof(WriteContext.WriteFloat)) },
             { typeof(int), typeof(WriteContext).GetMethod(nameof(WriteContext.WriteInt32)) },
@@ -777,6 +819,10 @@ namespace Wodsoft.Protobuf
 
         private static readonly Dictionary<Type, MethodInfo> _ReadMethodMap = new Dictionary<Type, MethodInfo>
         {
+            { typeof(byte), typeof(ParseContext).GetMethod(nameof(ParseContext.ReadInt32)) },
+            { typeof(sbyte), typeof(ParseContext).GetMethod(nameof(ParseContext.ReadInt32)) },
+            { typeof(short), typeof(ParseContext).GetMethod(nameof(ParseContext.ReadInt32)) },
+            { typeof(ushort), typeof(ParseContext).GetMethod(nameof(ParseContext.ReadInt32)) },
             { typeof(double), typeof(ParseContext).GetMethod(nameof(ParseContext.ReadDouble)) },
             { typeof(float), typeof(ParseContext).GetMethod(nameof(ParseContext.ReadFloat)) },
             { typeof(int), typeof(ParseContext).GetMethod(nameof(ParseContext.ReadInt32)) },
@@ -794,8 +840,8 @@ namespace Wodsoft.Protobuf
 
         #endregion
 
-        private static readonly Type[] _ValueTypes = new Type[] { typeof(double), typeof(float), typeof(int), typeof(long), typeof(uint), typeof(ulong), typeof(bool) };
-        private static readonly Type[] _NullableValueTypes = new Type[] { typeof(double?), typeof(float?), typeof(int?), typeof(long?), typeof(uint?), typeof(ulong?), typeof(bool?) };
+        private static readonly Type[] _ValueTypes = new Type[] { typeof(byte), typeof(sbyte), typeof(short), typeof(ushort), typeof(double), typeof(float), typeof(int), typeof(long), typeof(uint), typeof(ulong), typeof(bool) };
+        private static readonly Type[] _NullableValueTypes = new Type[] { typeof(byte?), typeof(sbyte?), typeof(short?), typeof(ushort?), typeof(double?), typeof(float?), typeof(int?), typeof(long?), typeof(uint?), typeof(ulong?), typeof(bool?) };
         private static readonly Type[] _ScalarValueTypes = new Type[] { typeof(double), typeof(float), typeof(int), typeof(long), typeof(uint), typeof(ulong),
             typeof(bool), typeof(Guid), typeof(string), typeof(ByteString), typeof(DateTime), typeof(DateTimeOffset), typeof(TimeSpan), typeof(byte[]),
             typeof(double?), typeof(float?), typeof(int?), typeof(long?), typeof(uint?), typeof(ulong?), typeof(bool?), typeof(Guid?)};
