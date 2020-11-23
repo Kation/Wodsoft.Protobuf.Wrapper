@@ -3,18 +3,18 @@
 ## Contents
 
 - [About](#About)
-- [Requirements]
-- [Installation]
-- [Usage]
-  - [Serialize]
-  - [Deserialize]
-  - [Field order]
-  - [Get Protobuf Wrapper]
-- [Advanced]
-  - [Supported property types and relationships]
-  - [How it works]
-  - [Performance]
-- [License]
+- [Requirements](#Requirements)
+- [Installation](#Installation)
+- [Usage](#Usage)
+  - [Serialize](#Serialize)
+  - [Deserialize](#Deserialize)
+  - [Field Order](#Field-Order)
+  - [Get Protobuf Wrapper](#Get-Protobuf-Wrapper)
+- [Advanced](#Advanced)
+  - [Supported property types and relationships](#Supported-property-types-and-relationships)
+  - [How it works](#How-it-works)
+  - [Performance](#Performance)
+- [License](#License)
 
 ## About
 
@@ -84,7 +84,7 @@ CodedOutputStream output = ...;
 YourType model = Message.Deserialize<YourType>(output);
 ```
 
-### Field order
+### Field Order
 
 Use `System.Runtime.Serialization.DataMemberAttribute` for your properties and set the `Order` property to attribute.
 
