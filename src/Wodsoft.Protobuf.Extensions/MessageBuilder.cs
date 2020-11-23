@@ -352,6 +352,8 @@ namespace Wodsoft.Protobuf
                         computeSizeILGenerator.Emit(OpCodes.Call, _ComputeMethodMap[type]);
                         computeSizeILGenerator.Emit(OpCodes.Ldloc, sizeVariable);
                         computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
+                        computeSizeILGenerator.Emit(OpCodes.Ldc_I4_1);
+                        computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
                         computeSizeILGenerator.Emit(OpCodes.Stloc, sizeVariable);
                     }
                     //Write
@@ -624,6 +626,8 @@ namespace Wodsoft.Protobuf
                             computeSizeILGenerator.Emit(OpCodes.Call, property.PropertyType == typeof(string) ? _ComputeStringSizeMethodInfo : _ComputeBytesSizeMethodInfo);
                             computeSizeILGenerator.Emit(OpCodes.Ldloc, sizeVariable);
                             computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
+                            computeSizeILGenerator.Emit(OpCodes.Ldc_I4_1);
+                            computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
                             computeSizeILGenerator.Emit(OpCodes.Stloc, sizeVariable);
                         }
                         //Write
@@ -679,6 +683,50 @@ namespace Wodsoft.Protobuf
                             {
                                 writeILGenerator.Emit(OpCodes.Newobj, GetMessageType(property.PropertyType).GetConstructor(new Type[] { property.PropertyType }));
                             }
+                            //Read
+                            {
+                                var valueVariable = readILGenerator.DeclareLocal( GetMessageType(property.PropertyType));
+                                readILGenerator.Emit(OpCodes.Newobj, valueVariable.LocalType.GetConstructor(Array.Empty<Type>()));
+                                readILGenerator.Emit(OpCodes.Stloc, valueVariable);
+                                readILGenerator.Emit(OpCodes.Ldarg_1);
+                                readILGenerator.Emit(OpCodes.Ldloc, valueVariable);
+                                readILGenerator.Emit(OpCodes.Call, typeof(ParseContext).GetMethod(nameof(ParseContext.ReadMessage)));
+
+                                readILGenerator.Emit(OpCodes.Ldarg_0);
+                                readILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
+                                readILGenerator.Emit(OpCodes.Ldloc, valueVariable);
+                                readILGenerator.Emit(OpCodes.Call, GetMessageType(property.PropertyType).GetProperty("Source").GetMethod);
+                                readILGenerator.Emit(OpCodes.Callvirt, property.SetMethod);
+                            }
+                        }
+                        else
+                        {
+                            //Read
+                            {
+                                var valueVariable = readILGenerator.DeclareLocal(property.PropertyType);
+                                var afterNew = readILGenerator.DefineLabel();
+                                readILGenerator.Emit(OpCodes.Ldarg_0);
+                                readILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
+                                readILGenerator.Emit(OpCodes.Callvirt, property.GetMethod);
+                                readILGenerator.Emit(OpCodes.Stloc, valueVariable);
+
+                                readILGenerator.Emit(OpCodes.Ldloc, valueVariable);
+                                readILGenerator.Emit(OpCodes.Brtrue, afterNew);
+
+                                readILGenerator.Emit(OpCodes.Newobj, property.PropertyType.GetConstructor(Array.Empty<Type>()));
+                                readILGenerator.Emit(OpCodes.Stloc, valueVariable);
+
+                                readILGenerator.MarkLabel(afterNew);
+                                readILGenerator.Emit(OpCodes.Ldarg_1);
+                                readILGenerator.Emit(OpCodes.Ldloc, valueVariable);
+                                readILGenerator.Emit(OpCodes.Call, typeof(ParseContext).GetMethod(nameof(ParseContext.ReadMessage)));
+
+                                readILGenerator.Emit(OpCodes.Ldarg_0);
+                                readILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
+                                readILGenerator.Emit(OpCodes.Ldloc, valueVariable);
+                                readILGenerator.Emit(OpCodes.Ldfld, GetMessageType(property.PropertyType).GetField("SourceValue", BindingFlags.NonPublic | BindingFlags.Instance));
+                                readILGenerator.Emit(OpCodes.Callvirt, property.SetMethod);
+                            }
                         }
 
                         //ComputeSize
@@ -686,12 +734,13 @@ namespace Wodsoft.Protobuf
                             computeSizeILGenerator.Emit(OpCodes.Call, _ComputeMessageSizeMethodInfo);
                             computeSizeILGenerator.Emit(OpCodes.Ldloc, sizeVariable);
                             computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
+                            computeSizeILGenerator.Emit(OpCodes.Ldc_I4_1);
+                            computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
                             computeSizeILGenerator.Emit(OpCodes.Stloc, sizeVariable);
                         }
                         //Write
                         {
-                            writeILGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod(nameof(WriteContext.WriteGroup)));
-
+                            writeILGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod(nameof(WriteContext.WriteMessage)));
                         }
                     }
                 }

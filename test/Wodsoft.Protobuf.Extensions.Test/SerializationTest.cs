@@ -170,5 +170,30 @@ namespace Wodsoft.Protobuf.Extensions.Test
             Assert.Equal(model.ByteMap, model2.ByteMap);
             Assert.Equal(model.ShortMap, model2.ShortMap);
         }
+
+        [Fact]
+        public void Object_Class_Test()
+        {
+            ContentModel model = new ContentModel();
+            model.Title = "This is a test content";
+            model.Read = 1000;
+            model.User = new UserModel
+            {
+                UserId = "test",
+                UserName = "Test User"
+            };
+
+            MemoryStream stream = new MemoryStream();
+            Message.Serialize(stream, model);
+
+            stream.Position = 0;
+            var model2 = Message<ContentModel>.Deserialize(stream);
+
+            Assert.Equal(model.Title, model2.Title);
+            Assert.Equal(model.Read, model2.Read);
+            Assert.NotNull(model2.User);
+            Assert.Equal(model.User.UserId, model2.User.UserId);
+            Assert.Equal(model.User.UserName, model2.User.UserName);
+        }
     }
 }
