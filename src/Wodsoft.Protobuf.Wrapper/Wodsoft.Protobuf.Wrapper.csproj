@@ -3,11 +3,22 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
     <RootNamespace>Wodsoft.Protobuf</RootNamespace>
+    <Authors>Kation</Authors>
+    <Company>Wodsoft</Company>
+    <Description>Wrap existing models into Google Protobuf models that inherit IMessage.</Description>
+    <PackageProjectUrl>https://github.com/Kation/Wodsoft.Protobuf.Wrapper</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Kation/Wodsoft.Protobuf.Wrapper</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <Version>1.0.0-alpha1</Version>
+    <IncludeSymbols>true</IncludeSymbols>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Google.Protobuf" Version="3.14.0" />
     <PackageReference Include="System.Reflection.Emit" Version="4.7.0" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
   </ItemGroup>
 
 </Project>
