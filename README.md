@@ -36,7 +36,7 @@ The library works on platform that allow dynamic complie. For example, **IOS is 
 
 ## Installation
 
-Library is available in four NuGet packages.
+Library is available in NuGet package [Wodsoft.Protobuf.Wrapper](https://www.nuget.org/packages/Wodsoft.Protobuf.Wrapper).
 
 ```bash
 dotnet add package Wodsoft.Protobuf.Wrapper
