@@ -1,0 +1,10 @@
+﻿syntax = "proto3";
+
+option csharp_namespace = "Wodsoft.Protobuf";
+
+
+
+message ProtobufModel {
+	string stringValue = 1;
+	int32 intValue = 2;
+}

@@ -673,7 +673,7 @@ namespace Wodsoft.Protobuf
                             writeILGenerator.Emit(OpCodes.Ldloc, writeValueVariable);
                         }
 
-                        if (!property.PropertyType.IsAssignableFrom(typeof(IMessage)))
+                        if (!typeof(IMessage).IsAssignableFrom(property.PropertyType))
                         {
                             //ComputeSize
                             {
@@ -724,7 +724,6 @@ namespace Wodsoft.Protobuf
                                 readILGenerator.Emit(OpCodes.Ldarg_0);
                                 readILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
                                 readILGenerator.Emit(OpCodes.Ldloc, valueVariable);
-                                readILGenerator.Emit(OpCodes.Ldfld, GetMessageType(property.PropertyType).GetField("SourceValue", BindingFlags.NonPublic | BindingFlags.Instance));
                                 readILGenerator.Emit(OpCodes.Callvirt, property.SetMethod);
                             }
                         }

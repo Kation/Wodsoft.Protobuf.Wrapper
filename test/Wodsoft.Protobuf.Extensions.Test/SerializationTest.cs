@@ -195,5 +195,30 @@ namespace Wodsoft.Protobuf.Extensions.Test
             Assert.Equal(model.User.UserId, model2.User.UserId);
             Assert.Equal(model.User.UserName, model2.User.UserName);
         }
+
+        [Fact]
+        public void Message_Class_Test()
+        {
+            MessageModel model = new MessageModel();
+            model.Title = "This is a protobuf message included model";
+            model.Number = 99;
+            model.Model = new ProtobufModel
+            {
+                IntValue = 100,
+                StringValue = "Hello"
+            };
+
+            MemoryStream stream = new MemoryStream();
+            Message.Serialize(stream, model);
+
+            stream.Position = 0;
+            var model2 = Message<MessageModel>.Deserialize(stream);
+
+            Assert.Equal(model.Title, model2.Title);
+            Assert.Equal(model.Number, model2.Number);
+            Assert.NotNull(model2.Model);
+            Assert.Equal(model.Model.IntValue, model2.Model.IntValue);
+            Assert.Equal(model.Model.StringValue, model2.Model.StringValue);
+        }
     }
 }
