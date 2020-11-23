@@ -299,34 +299,45 @@ namespace Wodsoft.Protobuf
                             readILGenerator.Emit(OpCodes.Call, typeof(Type).GetMethod("GetTypeFromHandle", new Type[1] { typeof(RuntimeTypeHandle) }));
                             readILGenerator.Emit(OpCodes.Ldarg_1);
                             readILGenerator.Emit(OpCodes.Call, _ReadMethodMap[Enum.GetUnderlyingType(type)]);
-                            if (Enum.GetUnderlyingType(type) == typeof(byte) || Enum.GetUnderlyingType(type) == typeof(sbyte) || Enum.GetUnderlyingType(type) == typeof(short) || Enum.GetUnderlyingType(type) == typeof(ushort))
+                            if (Enum.GetUnderlyingType(type) == typeof(byte))
                             {
-                                readILGenerator.Emit(OpCodes.Box, typeof(int));
-                                readILGenerator.Emit(OpCodes.Ldtoken, Enum.GetUnderlyingType(type));
-                                readILGenerator.Emit(OpCodes.Call, typeof(Type).GetMethod("GetTypeFromHandle", new Type[1] { typeof(RuntimeTypeHandle) }));
-                                readILGenerator.Emit(OpCodes.Call, typeof(Convert).GetMethod("ChangeType", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(object), typeof(Type) }, null));
-                                readILGenerator.Emit(OpCodes.Unbox_Any, Enum.GetUnderlyingType(type));
+                                readILGenerator.Emit(OpCodes.Conv_U1);
+                            }
+                            else if (Enum.GetUnderlyingType(type) == typeof(sbyte))
+                            {
+                                readILGenerator.Emit(OpCodes.Conv_I1);
+                            }
+                            else if (Enum.GetUnderlyingType(type) == typeof(short))
+                            {
+                                readILGenerator.Emit(OpCodes.Conv_I2);
+                            }
+                            else if (Enum.GetUnderlyingType(type) == typeof(ushort))
+                            {
+                                readILGenerator.Emit(OpCodes.Conv_U2);
                             }
                             readILGenerator.Emit(OpCodes.Call, typeof(Enum).GetMethod("ToObject", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(Type), Enum.GetUnderlyingType(type) }, null));
-                            //readILGenerator.Emit(OpCodes.Ldtoken, type);
-                            //readILGenerator.Emit(OpCodes.Call, typeof(Type).GetMethod("GetTypeFromHandle", new Type[1] { typeof(RuntimeTypeHandle) }));
-                            //readILGenerator.Emit(OpCodes.Call, typeof(Convert).GetMethod("ChangeType", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(object), typeof(Type) }, null));
-                            readILGenerator.Emit(OpCodes.Unbox_Any, type);
-                        }
-                        else if (type == typeof(sbyte) || type == typeof(byte) || type == typeof(short) || type == typeof(ushort))
-                        {
-                            readILGenerator.Emit(OpCodes.Ldarg_1);
-                            readILGenerator.Emit(OpCodes.Call, _ReadMethodMap[type]);
-                            readILGenerator.Emit(OpCodes.Box, typeof(int));
-                            readILGenerator.Emit(OpCodes.Ldtoken, type);
-                            readILGenerator.Emit(OpCodes.Call, typeof(Type).GetMethod("GetTypeFromHandle", new Type[1] { typeof(RuntimeTypeHandle) }));
-                            readILGenerator.Emit(OpCodes.Call, typeof(Convert).GetMethod("ChangeType", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(object), typeof(Type) }, null));
                             readILGenerator.Emit(OpCodes.Unbox_Any, type);
                         }
                         else
                         {
                             readILGenerator.Emit(OpCodes.Ldarg_1);
                             readILGenerator.Emit(OpCodes.Call, _ReadMethodMap[type]);
+                        }
+                        if (type == typeof(byte))
+                        {
+                            readILGenerator.Emit(OpCodes.Conv_U1);
+                        }
+                        else if (type == typeof(sbyte))
+                        {
+                            readILGenerator.Emit(OpCodes.Conv_I1);
+                        }
+                        else if (type == typeof(short))
+                        {
+                            readILGenerator.Emit(OpCodes.Conv_I2);
+                        }
+                        else if (type == typeof(ushort))
+                        {
+                            readILGenerator.Emit(OpCodes.Conv_U2);
                         }
                         if (underlyingType != null)
                             readILGenerator.Emit(OpCodes.Newobj, property.PropertyType.GetConstructor(Array.Empty<Type>()));
@@ -846,23 +857,7 @@ namespace Wodsoft.Protobuf
             else if (type == typeof(TimeSpan))
                 ilGenerator.Emit(OpCodes.Call, typeof(Google.Protobuf.WellKnownTypes.Duration).GetMethod("FromTimespan", BindingFlags.Public | BindingFlags.Static));
             else if (type.IsEnum)
-            {
-                var enumType = type;
                 type = Enum.GetUnderlyingType(type);
-                if (type == typeof(byte) || type == typeof(sbyte) || type == typeof(short) || type == typeof(ushort))
-                {
-                    ilGenerator.Emit(OpCodes.Box, enumType);
-                    ilGenerator.Emit(OpCodes.Ldtoken, type);
-                    ilGenerator.Emit(OpCodes.Call, typeof(Type).GetMethod("GetTypeFromHandle", new Type[1] { typeof(RuntimeTypeHandle) }));
-                    ilGenerator.Emit(OpCodes.Call, typeof(Convert).GetMethod("ChangeType", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(object), typeof(Type) }, null));
-                    ilGenerator.Emit(OpCodes.Unbox_Any, type);
-                }
-            }
-            //else if (type == typeof(sbyte) || type == typeof(byte) || type == typeof(short) || type == typeof(ushort))
-            //{
-            //    ilGenerator.Emit(OpCodes.Ldtoken, typeof(int));
-            //    ilGenerator.Emit(OpCodes.Call, typeof(Convert).GetMethod("ChangeType", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(object), typeof(Type) }, null));
-            //}
             return type;
         }
 
@@ -959,11 +954,6 @@ namespace Wodsoft.Protobuf
                 ilGenerator.Emit(OpCodes.Ldloca, kVariable);
                 ilGenerator.Emit(OpCodes.Call, keyType.GetMethod("GetValueOrDefault", BindingFlags.Public | BindingFlags.Instance, null, Array.Empty<Type>(), null));
                 ilGenerator.Emit(OpCodes.Newobj, field.FieldType.GetGenericArguments()[0].GetConstructor(new Type[] { typeof(int) }));
-                //ilGenerator.Emit(OpCodes.Box, keyType);
-                //ilGenerator.Emit(OpCodes.Ldtoken, field.FieldType.GetGenericArguments()[0]);
-                //ilGenerator.Emit(OpCodes.Call, typeof(Type).GetMethod("GetTypeFromHandle", new Type[1] { typeof(RuntimeTypeHandle) }));
-                //ilGenerator.Emit(OpCodes.Call, typeof(Convert).GetMethod("ChangeType", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(object), typeof(Type) }, null));
-                //ilGenerator.Emit(OpCodes.Unbox_Any, field.FieldType.GetGenericArguments()[0]);
             }
             else
             {
@@ -974,11 +964,6 @@ namespace Wodsoft.Protobuf
                 ilGenerator.Emit(OpCodes.Ldloca, vVariable);
                 ilGenerator.Emit(OpCodes.Call, valueType.GetMethod("GetValueOrDefault", BindingFlags.Public | BindingFlags.Instance, null, Array.Empty<Type>(), null));
                 ilGenerator.Emit(OpCodes.Newobj, field.FieldType.GetGenericArguments()[1].GetConstructor(new Type[] { typeof(int) }));
-                //ilGenerator.Emit(OpCodes.Box, valueType);
-                //ilGenerator.Emit(OpCodes.Ldtoken, field.FieldType.GetGenericArguments()[1]);
-                //ilGenerator.Emit(OpCodes.Call, typeof(Type).GetMethod("GetTypeFromHandle", new Type[1] { typeof(RuntimeTypeHandle) }));
-                //ilGenerator.Emit(OpCodes.Call, typeof(Convert).GetMethod("ChangeType", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(object), typeof(Type) }, null));
-                //ilGenerator.Emit(OpCodes.Unbox_Any, field.FieldType.GetGenericArguments()[1]);
             }
             else
             {
