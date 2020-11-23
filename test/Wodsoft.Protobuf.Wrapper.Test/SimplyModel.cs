@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Wodsoft.Protobuf.Extensions.Test
+namespace Wodsoft.Protobuf.Wrapper.Test
 {
     public class SimplyModel
     {

@@ -29,7 +29,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Wodsoft.Protobuf.Extensions\Wodsoft.Protobuf.Extensions.csproj" />
+    <ProjectReference Include="..\..\src\Wodsoft.Protobuf.Wrapper\Wodsoft.Protobuf.Wrapper.csproj" />
   </ItemGroup>
 
   <ItemGroup>

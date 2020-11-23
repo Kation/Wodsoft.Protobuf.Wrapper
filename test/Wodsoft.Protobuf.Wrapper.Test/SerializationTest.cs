@@ -6,7 +6,7 @@ using System.IO;
 using System.Text;
 using Xunit;
 
-namespace Wodsoft.Protobuf.Extensions.Test
+namespace Wodsoft.Protobuf.Wrapper.Test
 {
     public class SerializationTest
     {

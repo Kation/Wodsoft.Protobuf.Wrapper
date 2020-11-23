@@ -5,11 +5,16 @@ VisualStudioVersion = 16.0.30711.63
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{DD2E233C-A066-4350-9968-620393EFABB3}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Wodsoft.Protobuf.Extensions", "src\Wodsoft.Protobuf.Extensions\Wodsoft.Protobuf.Extensions.csproj", "{C2C5CE16-E231-4F6D-B803-E175013EE034}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{8130B4B4-54B1-4735-9F99-7E0A334FC1D8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wodsoft.Protobuf.Extensions.Test", "test\Wodsoft.Protobuf.Extensions.Test\Wodsoft.Protobuf.Extensions.Test.csproj", "{CC5A38A7-5946-4815-AF2C-FEB99FCAD4F7}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{A2FE6DD1-807D-49C9-A3BB-7D5AD51FAF07}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Wodsoft.Protobuf.Wrapper", "src\Wodsoft.Protobuf.Wrapper\Wodsoft.Protobuf.Wrapper.csproj", "{B21DAC30-4E80-476B-A67D-765F02205E95}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Wodsoft.Protobuf.Wrapper.Test", "test\Wodsoft.Protobuf.Wrapper.Test\Wodsoft.Protobuf.Wrapper.Test.csproj", "{BC84D9ED-1889-452D-BF12-47ABE772381D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,21 +22,21 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{C2C5CE16-E231-4F6D-B803-E175013EE034}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C2C5CE16-E231-4F6D-B803-E175013EE034}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C2C5CE16-E231-4F6D-B803-E175013EE034}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C2C5CE16-E231-4F6D-B803-E175013EE034}.Release|Any CPU.Build.0 = Release|Any CPU
-		{CC5A38A7-5946-4815-AF2C-FEB99FCAD4F7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{CC5A38A7-5946-4815-AF2C-FEB99FCAD4F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{CC5A38A7-5946-4815-AF2C-FEB99FCAD4F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{CC5A38A7-5946-4815-AF2C-FEB99FCAD4F7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B21DAC30-4E80-476B-A67D-765F02205E95}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B21DAC30-4E80-476B-A67D-765F02205E95}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B21DAC30-4E80-476B-A67D-765F02205E95}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B21DAC30-4E80-476B-A67D-765F02205E95}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BC84D9ED-1889-452D-BF12-47ABE772381D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BC84D9ED-1889-452D-BF12-47ABE772381D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BC84D9ED-1889-452D-BF12-47ABE772381D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BC84D9ED-1889-452D-BF12-47ABE772381D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{C2C5CE16-E231-4F6D-B803-E175013EE034} = {DD2E233C-A066-4350-9968-620393EFABB3}
-		{CC5A38A7-5946-4815-AF2C-FEB99FCAD4F7} = {8130B4B4-54B1-4735-9F99-7E0A334FC1D8}
+		{B21DAC30-4E80-476B-A67D-765F02205E95} = {DD2E233C-A066-4350-9968-620393EFABB3}
+		{BC84D9ED-1889-452D-BF12-47ABE772381D} = {8130B4B4-54B1-4735-9F99-7E0A334FC1D8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {90755075-18FD-4047-82F1-5F2CA1B10019}

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Text;
 
-namespace Wodsoft.Protobuf.Extensions.Test
+namespace Wodsoft.Protobuf.Wrapper.Test
 {
     public class CollectionModel
     {
