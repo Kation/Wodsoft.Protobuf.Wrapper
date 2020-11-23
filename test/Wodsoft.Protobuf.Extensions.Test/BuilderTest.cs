@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Xunit;
 
@@ -12,6 +13,7 @@ namespace Wodsoft.Protobuf.Extensions.Test
             MessageBuilder.GetMessageType<SimplyModel>();
             MessageBuilder.GetMessageType<EnumModel>();
             MessageBuilder.GetMessageType<CollectionModel>();
+            MessageBuilder.GetMessageType<DictionaryModel>();
 
             var generator = new Lokad.ILPack.AssemblyGenerator();
             var bytes = generator.GenerateAssemblyBytes(MessageBuilder.GetAssembly());

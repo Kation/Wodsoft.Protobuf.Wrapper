@@ -145,5 +145,30 @@ namespace Wodsoft.Protobuf.Extensions.Test
             Assert.Equal<long>(model.LongArray, model2.LongArray);
             Assert.Equal<long?>(model.NullableLongArray, model2.NullableLongArray);
         }
+
+        [Fact]
+        public void Dictionary_Class_Test()
+        {
+            DictionaryModel model = new DictionaryModel();
+            model.StringMap = new Dictionary<string, string>();
+            model.StringMap["a"] = "1";
+            model.StringMap["b"] = "2";
+            model.ByteMap = new Dictionary<byte, string>();
+            model.ByteMap[2] = "2";
+            model.ByteMap[4] = "4";
+            model.ShortMap = new Dictionary<string, short?>();
+            model.ShortMap["a"] = 123;
+            model.ShortMap["b"] = 456;
+
+            MemoryStream stream = new MemoryStream();
+            Message.Serialize(stream, model);
+
+            stream.Position = 0;
+            var model2 = Message<DictionaryModel>.Deserialize(stream);
+
+            Assert.Equal(model.StringMap, model2.StringMap);
+            Assert.Equal(model.ByteMap, model2.ByteMap);
+            Assert.Equal(model.ShortMap, model2.ShortMap);
+        }
     }
 }
