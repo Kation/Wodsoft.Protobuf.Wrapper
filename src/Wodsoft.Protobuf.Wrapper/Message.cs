@@ -148,7 +148,7 @@ namespace Wodsoft.Protobuf
         public static implicit operator Message<T>(T source)
         {
             if (source == null)
-                throw new ArgumentNullException(nameof(source));
+                return null;
             var type = MessageBuilder.GetMessageType<T>();
             var message = (Message<T>)Activator.CreateInstance(type, source);
             return message;
@@ -157,7 +157,7 @@ namespace Wodsoft.Protobuf
         public static implicit operator T(Message<T> message)
         {
             if (message == null)
-                throw new ArgumentNullException(nameof(message));
+                return null;
             return message.SourceValue;
         }
     }
