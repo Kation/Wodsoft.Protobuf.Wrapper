@@ -860,7 +860,7 @@ namespace Wodsoft.Protobuf
                 //if (type == typeof(byte) || type == typeof(sbyte) || type == typeof(short) || type == typeof(ushort))
                 //    type = typeof(int);
                 //IL: FieldCodec.ForStructWrapper<>(tag)
-                staticIlGenerator.Emit(OpCodes.Call, typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForStructWrapper), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(uint) }, null).MakeGenericMethod(type));
+                staticIlGenerator.Emit(OpCodes.Call, _CodecMethodMap[type]);
             }
             else if (elementType == typeof(string))
             {

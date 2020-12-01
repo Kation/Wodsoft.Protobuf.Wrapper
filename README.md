@@ -30,7 +30,7 @@ In this case, this library will help you to use Protobuf for serialization.
 
 ## Requirements
 
-Wodsoft.Protobuf.Extensions requires NETStandard2.0 or above.
+Wodsoft.Protobuf.Wrapper requires NETStandard 2.0 or above.
 
 The library works on platform that allow dynamic complie. For example, **IOS is not allow to work.**
 
