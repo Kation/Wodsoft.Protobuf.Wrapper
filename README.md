@@ -163,17 +163,16 @@ Emit codes for `Read`, `Write`, `CalculateSize`.
 It is nothing at performance cost in general types.
 But there is some performance cost when use some primitives types that Protobuf doesn't support.
 
-- **RECOMMEND DO NOT USE** `byte`, `sbyte`, `short` and `ushort` as property type.
-Specially use with generic types like `List` or `Dictionary` etc.
-It will cost more **performance** for convert them from `int` to purpose type.
 - **RECOMMEND USE** `RepeatedField<>`, `IList<>` or `ICollection<>` as collection property type.
 Use `RepeatedField<>` will be the **fastest performance**.
-- Use `IList<>` or `ICollection<>` should convert it to `RepeatedField<>` when serialize model.
-- Use `List<>` or `Collection<>` should convert it to `RepeatedField<>` when serialize model.
+- Use `IList<>` or `ICollection<>` will convert it to `RepeatedField<>` when serialize model.
+- Use `List<>` or `Collection<>` will convert it to `RepeatedField<>` when serialize model.
 And convert it back when deserialize model.
 - **RECOMMEND USE** `MapField<,>` or `IDictionary<,>` as dictionary property type.
 Use `MapField<,>` will be the **fastest performance**.
-
+- Use `IDictionary<,>` will convert it to `MapField<,>` when serialize model.
+- Use `Dictionary<,>` will convert it to `MapField<,>` when serialize model.
+And convert it back when deserialize model.
 
 ## License
 
