@@ -34,5 +34,7 @@ namespace Wodsoft.Protobuf.Wrapper.Test
         public long[] LongArray { get; set; }
 
         public long?[] NullableLongArray { get; set; }
+
+        public ICollection<TimeSpan> TimeSpanCollection { get; set; }
     }
 }

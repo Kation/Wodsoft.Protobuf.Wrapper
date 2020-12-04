@@ -10,6 +10,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.Serialization;
 using System.Text;
+using Wodsoft.Protobuf.Generators;
 
 namespace Wodsoft.Protobuf
 {
@@ -17,19 +18,84 @@ namespace Wodsoft.Protobuf
     {
         static MessageBuilder()
         {
-            _AssemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("Wodsoft.ComBoost.Grpc.Dynamic"), AssemblyBuilderAccess.Run);
-            _ModuleBuilder = _AssemblyBuilder.DefineDynamicModule("Services");
+            AssemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("Wodsoft.ComBoost.Grpc.Dynamic"), AssemblyBuilderAccess.Run);
+            ModuleBuilder = AssemblyBuilder.DefineDynamicModule("Services");
+
+            _CodeGenerators[typeof(bool)] = new BooleanCodeGenerator();
+            _CodeGenerators[typeof(byte)] = new ByteCodeGenerator();
+            _CodeGenerators[typeof(sbyte)] = new SByteCodeGenerator();
+            _CodeGenerators[typeof(short)] = new Int16CodeGenerator();
+            _CodeGenerators[typeof(int)] = new Int32CodeGenerator();
+            _CodeGenerators[typeof(long)] = new Int64CodeGenerator();
+            _CodeGenerators[typeof(ushort)] = new UInt16CodeGenerator();
+            _CodeGenerators[typeof(uint)] = new UInt32CodeGenerator();
+            _CodeGenerators[typeof(ulong)] = new UInt64CodeGenerator();
+            _CodeGenerators[typeof(float)] = new SingleCodeGenerator();
+            _CodeGenerators[typeof(double)] = new DoubleCodeGenerator();
+            _CodeGenerators[typeof(DateTime)] = new DateTimeCodeGenerator();
+            _CodeGenerators[typeof(DateTimeOffset)] = new DateTimeOffsetCodeGenerator();
+            _CodeGenerators[typeof(TimeSpan)] = new TimeSpanCodeGenerator();
+            _CodeGenerators[typeof(Guid)] = new GuidCodeGenerator();
+            _CodeGenerators[typeof(string)] = new StringCodeGenerator();
+
+            _CodeGenerators[typeof(bool?)] = new NullableCodeGenerator<bool>(new BooleanCodeGenerator());
+            _CodeGenerators[typeof(byte?)] = new NullableCodeGenerator<byte>(new ByteCodeGenerator());
+            _CodeGenerators[typeof(sbyte?)] = new NullableCodeGenerator<sbyte>(new SByteCodeGenerator());
+            _CodeGenerators[typeof(short?)] = new NullableCodeGenerator<short>(new Int16CodeGenerator());
+            _CodeGenerators[typeof(int?)] = new NullableCodeGenerator<int>(new Int32CodeGenerator());
+            _CodeGenerators[typeof(long?)] = new NullableCodeGenerator<long>(new Int64CodeGenerator());
+            _CodeGenerators[typeof(ushort?)] = new NullableCodeGenerator<ushort>(new UInt16CodeGenerator());
+            _CodeGenerators[typeof(uint?)] = new NullableCodeGenerator<uint>(new UInt32CodeGenerator());
+            _CodeGenerators[typeof(ulong?)] = new NullableCodeGenerator<ulong>(new UInt64CodeGenerator());
+            _CodeGenerators[typeof(float?)] = new NullableCodeGenerator<float>(new SingleCodeGenerator());
+            _CodeGenerators[typeof(double?)] = new NullableCodeGenerator<double>(new DoubleCodeGenerator());
+            _CodeGenerators[typeof(DateTime?)] = new NullableCodeGenerator<DateTime>(new DateTimeCodeGenerator());
+            _CodeGenerators[typeof(DateTimeOffset?)] = new NullableCodeGenerator<DateTimeOffset>(new DateTimeOffsetCodeGenerator());
+            _CodeGenerators[typeof(TimeSpan?)] = new NullableCodeGenerator<TimeSpan>(new TimeSpanCodeGenerator());
+            _CodeGenerators[typeof(Guid?)] = new NullableCodeGenerator<Guid>(new GuidCodeGenerator());
         }
 
-        private static readonly AssemblyBuilder _AssemblyBuilder;
-        private static readonly ModuleBuilder _ModuleBuilder;
+        internal static readonly AssemblyBuilder AssemblyBuilder;
+        internal static readonly ModuleBuilder ModuleBuilder;
         private static readonly ConcurrentDictionary<Type, Type> _TypeCache = new ConcurrentDictionary<Type, Type>();
+        private static readonly Dictionary<Type, ICodeGenerator> _CodeGenerators = new Dictionary<Type, ICodeGenerator>();
 
+        /// <summary>
+        /// Set code generator of type <typeparamref name="T"/>.
+        /// </summary>
+        /// <typeparam name="T">Object type.</typeparam>
+        /// <param name="codeGenerator">Code generator of type <typeparamref name="T"/>.</param>
+        public static void SetCodeGenerator<T>(ICodeGenerator codeGenerator)
+            where T : struct
+        {
+            _CodeGenerators[typeof(T)] = codeGenerator ?? throw new ArgumentNullException(nameof(codeGenerator));
+        }
+
+        /// <summary>
+        /// Get code generator of type <typeparamref name="T"/>.
+        /// </summary>
+        /// <typeparam name="T">Object type.</typeparam>
+        /// <returns>Return code generator if exists, otherwise null.</returns>
+        public static ICodeGenerator GetCodeGenerator<T>()
+        {
+            _CodeGenerators.TryGetValue(typeof(T), out var value);
+            return value;
+        }
+
+        /// <summary>
+        /// Get dynamic assembly of wrappers.
+        /// </summary>
+        /// <returns>Return assembly.</returns>
         public static Assembly GetAssembly()
         {
-            return _AssemblyBuilder;
+            return AssemblyBuilder;
         }
 
+        /// <summary>
+        /// Get message wrapper type of <typeparamref name="T"/>.
+        /// </summary>
+        /// <typeparam name="T">Type of object.</typeparam>
+        /// <returns>Return message wrapper type.</returns>
         public static Type GetMessageType<T>()
             where T : class, new()
         {
@@ -39,29 +105,36 @@ namespace Wodsoft.Protobuf
             return type;
         }
 
+        /// <summary>
+        /// Get message wrapper type.
+        /// </summary>
+        /// <param name="type">Type of object.</param>
+        /// <returns>Return message wrapper type.</returns>
         public static Type GetMessageType(Type type)
         {
-            return _TypeCache.GetOrAdd(type, t =>
+            Type[] refTypes = null;
+            var wrappedType = _TypeCache.GetOrAdd(type, t =>
             {
                 var baseType = typeof(Message<>).MakeGenericType(type);
-                var moduleBuilder = _ModuleBuilder;
-                var typeBuilder = moduleBuilder.DefineType(type.Namespace + ".Proxy_" + type.Name,
-                    TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.AutoClass | TypeAttributes.AnsiClass | TypeAttributes.BeforeFieldInit,
-                    baseType);
+                var typeBuilder = (TypeBuilder)baseType.GetField("TypeBuilder", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
                 var properties = GetProperties(type);
-                BuildMethod(typeBuilder, baseType, type, properties, out var initFields);
+                BuildMethod(typeBuilder, baseType, type, properties, out var initFields, out refTypes);
                 var constructor = BuildConstructor(typeBuilder, baseType, type, initFields);
-                BuildEmptyConstructor(typeBuilder, baseType, constructor);
+                BuildEmptyConstructor(typeBuilder, baseType, type, constructor);
                 var messageType = typeBuilder.CreateTypeInfo();
                 typeof(Message<>).MakeGenericType(t).GetField("MessageType", BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, messageType);
-                return messageType;
+                return messageType.AsType();
             });
+            if (refTypes != null)
+                foreach (var item in refTypes)
+                    if (!_TypeCache.ContainsKey(item))
+                        GetMessageType(item);
+            return wrappedType;
         }
 
-        private static void BuildEmptyConstructor(TypeBuilder typeBuilder, Type baseType, ConstructorBuilder constructor)
+        private static void BuildEmptyConstructor(TypeBuilder typeBuilder, Type baseType, Type wrapType, ConstructorBuilder constructor)
         {
-            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName | MethodAttributes.HideBySig, CallingConventions.Standard | CallingConventions.HasThis,
-                Array.Empty<Type>());
+            var constructorBuilder = (ConstructorBuilder)typeof(Message<>).MakeGenericType(wrapType).GetField("EmptyConstructor", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
             var ilGenerator = constructorBuilder.GetILGenerator();
             ilGenerator.Emit(OpCodes.Ldarg_0);
             ilGenerator.Emit(OpCodes.Newobj, baseType.GetGenericArguments()[0].GetConstructor(Array.Empty<Type>()));
@@ -71,8 +144,7 @@ namespace Wodsoft.Protobuf
 
         private static ConstructorBuilder BuildConstructor(TypeBuilder typeBuilder, Type baseType, Type objectType, FieldBuilder[] initFields)
         {
-            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName | MethodAttributes.HideBySig, CallingConventions.Standard | CallingConventions.HasThis,
-                new Type[] { objectType });
+            var constructorBuilder = (ConstructorBuilder)typeof(Message<>).MakeGenericType(objectType).GetField("ValueConstructor", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
             var ilGenerator = constructorBuilder.GetILGenerator();
             ilGenerator.Emit(OpCodes.Ldarg_0);
             ilGenerator.Emit(OpCodes.Ldarg_1);
@@ -93,12 +165,10 @@ namespace Wodsoft.Protobuf
             var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(t => t.CanWrite && t.CanRead).ToArray();
             if (properties.Any(t => t.GetCustomAttribute<DataMemberAttribute>() != null))
                 properties = properties.Where(t => t.GetCustomAttribute<DataMemberAttribute>() != null).OrderBy(t => t.GetCustomAttribute<DataMemberAttribute>().Order).ToArray();
-            foreach (var property in properties)
-                TypeCheck(property);
             return properties;
         }
 
-        private static void BuildMethod(TypeBuilder typeBuilder, Type baseType, Type objectType, PropertyInfo[] properties, out FieldBuilder[] initFields)
+        private static void BuildMethod(TypeBuilder typeBuilder, Type baseType, Type objectType, PropertyInfo[] properties, out FieldBuilder[] initFields, out Type[] referenceTypes)
         {
             var computeSizeMethodBuilder = typeBuilder.DefineMethod("ComputeSize", MethodAttributes.Static | MethodAttributes.Public, typeof(int), new Type[] { objectType });
             var computeSizeILGenerator = computeSizeMethodBuilder.GetILGenerator();
@@ -124,6 +194,8 @@ namespace Wodsoft.Protobuf
 
             int index = 0;
 
+            List<Type> referenceWrapTypes = new List<Type>();
+
             List<FieldBuilder> speciallyFields = new List<FieldBuilder>();
 
             //ComputeSize
@@ -146,10 +218,20 @@ namespace Wodsoft.Protobuf
                 {
                     index++;
                     uint tag;
-                    if (_ValueTypes.Contains(property.PropertyType) || _NullableValueTypes.Contains(property.PropertyType) || property.PropertyType.IsEnum || Nullable.GetUnderlyingType(property.PropertyType)?.IsEnum == true)
-                        tag = WireFormat.MakeTag(index, WireFormat.WireType.Varint);
+                    if (_CodeGenerators.TryGetValue(property.PropertyType, out var codeGenerator))
+                    {
+                        tag = WireFormat.MakeTag(index, codeGenerator.WireType);
+                    }
                     else
-                        tag = WireFormat.MakeTag(index, WireFormat.WireType.LengthDelimited);
+                    {
+                        var type = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
+                        if (type.IsEnum)
+                        {
+                            tag = WireFormat.MakeTag(index, _CodeGenerators[Enum.GetUnderlyingType(type)].WireType);
+                        }
+                        else
+                            tag = WireFormat.MakeTag(index, WireFormat.WireType.LengthDelimited);
+                    }
 
                     readILGenerator.Emit(OpCodes.Ldloc, readTagVariable);
                     readILGenerator.Emit(OpCodes.Ldc_I4, (int)tag);
@@ -160,14 +242,23 @@ namespace Wodsoft.Protobuf
                         if (type == typeof(RepeatedField<>) || type == typeof(IList<>) || type == typeof(ICollection<>) || type == typeof(List<>) || type == typeof(Collection<>))
                         {
                             type = property.PropertyType.GetGenericArguments()[0];
-                            type = Nullable.GetUnderlyingType(type) ?? type;
-                            if (_ValueTypes.Contains(type))
+                            if (_CodeGenerators.TryGetValue(type, out codeGenerator) && codeGenerator.WireType == WireFormat.WireType.Varint)
                             {
 
                                 readILGenerator.Emit(OpCodes.Ldloc, readTagVariable);
                                 readILGenerator.Emit(OpCodes.Ldc_I4, (int)WireFormat.MakeTag(index, WireFormat.WireType.Varint));
                                 readILGenerator.Emit(OpCodes.Beq, readTagLabels[property]);
                             }
+                        }
+                    }
+                    else if (property.PropertyType.IsArray)
+                    {
+                        if (_CodeGenerators.TryGetValue(property.PropertyType.GetElementType(), out codeGenerator) && codeGenerator.WireType == WireFormat.WireType.Varint)
+                        {
+
+                            readILGenerator.Emit(OpCodes.Ldloc, readTagVariable);
+                            readILGenerator.Emit(OpCodes.Ldc_I4, (int)WireFormat.MakeTag(index, WireFormat.WireType.Varint));
+                            readILGenerator.Emit(OpCodes.Beq, readTagLabels[property]);
                         }
                     }
                 }
@@ -192,113 +283,52 @@ namespace Wodsoft.Protobuf
 
                 readILGenerator.MarkLabel(readTagLabels[property]);
 
+                _CodeGenerators.TryGetValue(property.PropertyType, out var codeGenerator);
+
                 GenerateReadProperty(computeSizeILGenerator, computeSizeValueVariable, sourceFieldInfo, property);
                 GenerateReadProperty(writeILGenerator, writeValueVariable, sourceFieldInfo, property);
 
-                if (property.PropertyType.IsValueType)
+                if (codeGenerator == null)
                 {
-                    var underlyingType = Nullable.GetUnderlyingType(property.PropertyType);
-                    if (underlyingType != null)
+                    if (property.PropertyType.IsValueType && (Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType).IsEnum)
                     {
-                        //ComputeSize
+                        var underlyingType = Nullable.GetUnderlyingType(property.PropertyType);
+                        if (underlyingType != null)
                         {
-                            //IL: if (value.HasValue)
-                            computeSizeILGenerator.Emit(OpCodes.Ldloc, computeSizeValueVariable);
-                            computeSizeILGenerator.Emit(OpCodes.Call, property.PropertyType.GetProperty("HasValue").GetMethod);
-                            computeSizeILGenerator.Emit(OpCodes.Brfalse, computeSizeEnd);
+                            //ComputeSize
+                            {
+                                //IL: if (value.HasValue)
+                                computeSizeILGenerator.Emit(OpCodes.Ldloc, computeSizeValueVariable);
+                                computeSizeILGenerator.Emit(OpCodes.Call, property.PropertyType.GetProperty("HasValue").GetMethod);
+                                computeSizeILGenerator.Emit(OpCodes.Brfalse, computeSizeEnd);
+                            }
+                            //Write
+                            {
+                                //IL: if (value.HasValue)
+                                writeILGenerator.Emit(OpCodes.Ldloc, writeValueVariable);
+                                writeILGenerator.Emit(OpCodes.Call, property.PropertyType.GetProperty("HasValue").GetMethod);
+                                writeILGenerator.Emit(OpCodes.Brfalse, writeEnd);
+                            }
                         }
+
+                        var type = underlyingType ?? property.PropertyType;
+
+                        var valueType = Enum.GetUnderlyingType(type);
+                        codeGenerator = _CodeGenerators[valueType];
+
                         //Write
+                        codeGenerator.GenerateWriteCode(writeILGenerator, writeValueVariable, index);
+
+                        //Read
                         {
-                            //IL: if (value.HasValue)
-                            writeILGenerator.Emit(OpCodes.Ldloc, writeValueVariable);
-                            writeILGenerator.Emit(OpCodes.Call, property.PropertyType.GetProperty("HasValue").GetMethod);
-                            writeILGenerator.Emit(OpCodes.Brfalse, writeEnd);
-                        }
-                    }
+                            //IL: this.Source.{Property} = value;
+                            readILGenerator.Emit(OpCodes.Ldarg_0);
+                            readILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
 
-                    var type = underlyingType ?? property.PropertyType;
-
-                    //Write
-                    {
-                        //Get the tag value of this property
-                        var tag = WireFormat.MakeTag(index, WireFormat.WireType.Varint);
-                        //IL: writer.WriteTag(tag);
-                        writeILGenerator.Emit(OpCodes.Ldarg_1);
-                        writeILGenerator.Emit(OpCodes.Ldc_I4, (int)tag);
-                        writeILGenerator.Emit(OpCodes.Call, _WriteTag);
-
-                        //IL: writer.Write{XXX}(value);
-                        writeILGenerator.Emit(OpCodes.Ldarg_1);
-                    }
-                    //Read
-                    {
-                        //IL: this.Source.{Property} = value;
-                        readILGenerator.Emit(OpCodes.Ldarg_0);
-                        readILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
-
-                        //Convert back values
-                        if (type == typeof(Guid))
-                        {
-                            readILGenerator.Emit(OpCodes.Ldarg_1);
-                            readILGenerator.Emit(OpCodes.Call, _ReadMethodMap[type]);
-                            readILGenerator.Emit(OpCodes.Call, typeof(ByteString).GetMethod("ToByteArray"));
-                            readILGenerator.Emit(OpCodes.Newobj, typeof(Guid).GetConstructor(new Type[] { typeof(byte[]) }));
-                        }
-                        else if (type == typeof(DateTime))
-                        {
-                            //IL: dateTime = new Google.Protobuf.WellKnownTypes.Timestamp();
-                            var dateTimeVariable = readILGenerator.DeclareLocal(typeof(Google.Protobuf.WellKnownTypes.Timestamp));
-                            readILGenerator.Emit(OpCodes.Newobj, typeof(Google.Protobuf.WellKnownTypes.Timestamp).GetConstructor(Array.Empty<Type>()));
-                            readILGenerator.Emit(OpCodes.Stloc, dateTimeVariable);
-                            readILGenerator.Emit(OpCodes.Ldloc, dateTimeVariable);
-
-                            //IL: parser.ReadMessage(dateTime);
-                            readILGenerator.Emit(OpCodes.Ldarg_1);
-                            readILGenerator.Emit(OpCodes.Call, _ReadMethodMap[type]);
-
-                            //IL: dateTime.ToDateTime();
-                            readILGenerator.Emit(OpCodes.Ldloc);
-                            readILGenerator.Emit(OpCodes.Call, typeof(Google.Protobuf.WellKnownTypes.Timestamp).GetMethod("ToDateTime"));
-                        }
-                        else if (type == typeof(DateTimeOffset))
-                        {
-                            //IL: dateTime = new Google.Protobuf.WellKnownTypes.Timestamp();
-                            var dateTimeVariable = readILGenerator.DeclareLocal(typeof(Google.Protobuf.WellKnownTypes.Timestamp));
-                            readILGenerator.Emit(OpCodes.Newobj, typeof(Google.Protobuf.WellKnownTypes.Timestamp).GetConstructor(Array.Empty<Type>()));
-                            readILGenerator.Emit(OpCodes.Stloc, dateTimeVariable);
-                            readILGenerator.Emit(OpCodes.Ldloc, dateTimeVariable);
-
-                            //IL: parser.ReadMessage(dateTime);
-                            readILGenerator.Emit(OpCodes.Ldarg_1);
-                            readILGenerator.Emit(OpCodes.Call, _ReadMethodMap[type]);
-
-                            //IL: dateTime.ToDateTime();
-                            readILGenerator.Emit(OpCodes.Ldloc);
-                            readILGenerator.Emit(OpCodes.Call, typeof(Google.Protobuf.WellKnownTypes.Timestamp).GetMethod("ToDateTimeOffset"));
-                        }
-                        else if (type == typeof(TimeSpan))
-                        {
-                            //IL: timespan = new Google.Protobuf.WellKnownTypes.Duration();
-                            var timespanVariable = readILGenerator.DeclareLocal(typeof(Google.Protobuf.WellKnownTypes.Duration));
-                            readILGenerator.Emit(OpCodes.Newobj, typeof(Google.Protobuf.WellKnownTypes.Duration).GetConstructor(Array.Empty<Type>()));
-                            readILGenerator.Emit(OpCodes.Stloc, timespanVariable);
-                            readILGenerator.Emit(OpCodes.Ldloc, timespanVariable);
-
-                            //IL: parser.ReadMessage(timespan);
-                            readILGenerator.Emit(OpCodes.Ldarg_1);
-                            readILGenerator.Emit(OpCodes.Call, _ReadMethodMap[type]);
-
-                            //IL: dateTime.ToDateTime();
-                            readILGenerator.Emit(OpCodes.Ldloc);
-                            readILGenerator.Emit(OpCodes.Call, typeof(Google.Protobuf.WellKnownTypes.Duration).GetMethod("ToTimeSpan"));
-                        }
-                        else if (type.IsEnum)
-                        {
-                            //IL: parser.ReadXXX();
+                            //IL: Enum.ToObject(typeof({type}), parser.ReadXXX());
                             readILGenerator.Emit(OpCodes.Ldtoken, type);
                             readILGenerator.Emit(OpCodes.Call, typeof(Type).GetMethod("GetTypeFromHandle", new Type[1] { typeof(RuntimeTypeHandle) }));
-                            readILGenerator.Emit(OpCodes.Ldarg_1);
-                            readILGenerator.Emit(OpCodes.Call, _ReadMethodMap[Enum.GetUnderlyingType(type)]);
+                            codeGenerator.GenerateReadCode(readILGenerator);
                             if (Enum.GetUnderlyingType(type) == typeof(byte))
                             {
                                 readILGenerator.Emit(OpCodes.Conv_U1);
@@ -317,432 +347,369 @@ namespace Wodsoft.Protobuf
                             }
                             readILGenerator.Emit(OpCodes.Call, typeof(Enum).GetMethod("ToObject", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(Type), Enum.GetUnderlyingType(type) }, null));
                             readILGenerator.Emit(OpCodes.Unbox_Any, type);
-                        }
-                        else
-                        {
-                            readILGenerator.Emit(OpCodes.Ldarg_1);
-                            readILGenerator.Emit(OpCodes.Call, _ReadMethodMap[type]);
-                        }
-                        if (type == typeof(byte))
-                        {
-                            readILGenerator.Emit(OpCodes.Conv_U1);
-                        }
-                        else if (type == typeof(sbyte))
-                        {
-                            readILGenerator.Emit(OpCodes.Conv_I1);
-                        }
-                        else if (type == typeof(short))
-                        {
-                            readILGenerator.Emit(OpCodes.Conv_I2);
-                        }
-                        else if (type == typeof(ushort))
-                        {
-                            readILGenerator.Emit(OpCodes.Conv_U2);
-                        }
-                        if (underlyingType != null)
-                            readILGenerator.Emit(OpCodes.Newobj, property.PropertyType.GetConstructor(Array.Empty<Type>()));
-                        readILGenerator.Emit(OpCodes.Callvirt, property.SetMethod);
-                    }
-                    GenerateConvertValue(computeSizeILGenerator, computeSizeValueVariable, type, underlyingType != null);
-                    type = GenerateConvertValue(writeILGenerator, writeValueVariable, type, underlyingType != null);
 
-                    //ComputeSize
-                    {
-                        //IL: size += CodedOutputStream.Compute{type}Size(value);
-                        computeSizeILGenerator.Emit(OpCodes.Call, _ComputeMethodMap[type]);
-                        computeSizeILGenerator.Emit(OpCodes.Ldloc, sizeVariable);
-                        computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
-                        computeSizeILGenerator.Emit(OpCodes.Ldc_I4_1);
-                        computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
-                        computeSizeILGenerator.Emit(OpCodes.Stloc, sizeVariable);
-                    }
-                    //Write
-                    {
-                        writeILGenerator.Emit(OpCodes.Call, _WriteMethodMap[type]);
-                    }
-                }
-                else
-                {
-                    GenerateCheckNull(computeSizeILGenerator, computeSizeValueVariable, computeSizeEnd);
-                    GenerateCheckNull(writeILGenerator, writeValueVariable, writeEnd);
-
-                    bool isCollection = false;
-                    bool isDictionary = false;
-                    Type elementType = null;
-                    Type elementType2 = null;
-                    if (property.PropertyType.IsArray)
-                    {
-                        isCollection = true;
-                        elementType = property.PropertyType.GetElementType();
-                    }
-                    else if (property.PropertyType.IsGenericType)
-                    {
-                        var genericType = property.PropertyType.GetGenericTypeDefinition();
-                        if (genericType == typeof(IList<>) || genericType == typeof(List<>) || genericType == typeof(ICollection<>) || genericType == typeof(Collection<>) || genericType == typeof(RepeatedField<>))
-                        {
-                            elementType = property.PropertyType.GetGenericArguments()[0];
-                            isCollection = true;
-                        }
-                        else if (genericType == typeof(Dictionary<,>) || genericType == typeof(IDictionary<,>) || genericType == typeof(MapField<,>))
-                        {
-                            var types = property.PropertyType.GetGenericArguments();
-                            elementType = types[0];
-                            elementType2 = types[1];
-                            isDictionary = true;
-                        }
-                    }
-
-                    //Get the tag value of this property
-                    var tag = WireFormat.MakeTag(index, WireFormat.WireType.LengthDelimited);
-
-                    if (isCollection)
-                    {
-                        var sourceElementType = elementType;
-                        if (elementType == typeof(byte) || elementType == typeof(sbyte) || elementType == typeof(short) || elementType == typeof(ushort))
-                            elementType = typeof(int);
-                        if (elementType == typeof(byte?) || elementType == typeof(sbyte?) || elementType == typeof(short?) || elementType == typeof(ushort?))
-                            elementType = typeof(int?);
-                        var collectionType = typeof(RepeatedField<>).MakeGenericType(elementType);
-
-                        var codecField = typeBuilder.DefineField("_Codec_" + property.Name, typeof(FieldCodec<>).MakeGenericType(elementType), FieldAttributes.Private | FieldAttributes.Static);
-                        //static constructor
-                        {
-                            //IL: _Codec_{PropertyName} = FieldCodec.For{XXX}(tag);
-                            GenerateCodecValue(staticIlGenerator, elementType, tag);
-                            staticIlGenerator.Emit(OpCodes.Stsfld, codecField);
+                            if (underlyingType != null)
+                                readILGenerator.Emit(OpCodes.Newobj, property.PropertyType.GetConstructor(Array.Empty<Type>()));
+                            readILGenerator.Emit(OpCodes.Callvirt, property.SetMethod);
                         }
 
-                        if (property.PropertyType == collectionType)
-                        {
-                            //ComputeSize
-                            {
-                                //IL: value.CalculateSize(_Codec_{PropertyName});
-                                computeSizeILGenerator.Emit(OpCodes.Ldloc, computeSizeValueVariable);
-                            }
-                            //Write
-                            {
-                                //IL: value.WriteTo(ref writer, _Codec_{PropertyName});
-                                writeILGenerator.Emit(OpCodes.Ldloc, writeValueVariable);
-                            }
-                            //Read
-                            {
-                                //this.Source.{property}
-                                readILGenerator.Emit(OpCodes.Ldarg_0);
-                                readILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
-                                readILGenerator.Emit(OpCodes.Callvirt, property.GetMethod);
-                            }
-                        }
-                        else
-                        {
-                            var field = typeBuilder.DefineField("_" + property.Name, collectionType, FieldAttributes.Private | FieldAttributes.InitOnly);
-                            speciallyFields.Add(field);
-
-                            //ComputeSize
-                            {
-                                if (sourceElementType == elementType)
-                                {
-                                    GenerateAddCollection(computeSizeILGenerator, computeSizeValueVariable, field);
-                                }
-                                else
-                                {
-                                    var enumerableVariable = computeSizeILGenerator.DeclareLocal(typeof(IEnumerable<int>));
-                                    computeSizeILGenerator.Emit(OpCodes.Ldloc, computeSizeValueVariable);
-                                    computeSizeILGenerator.Emit(OpCodes.Call, typeof(MessageHelper).GetMethod("ConvertToInt", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(IEnumerable<>).MakeGenericType(sourceElementType) }, null));
-                                    computeSizeILGenerator.Emit(OpCodes.Stloc, enumerableVariable);
-                                    GenerateAddCollection(computeSizeILGenerator, enumerableVariable, field);
-                                }
-                                computeSizeILGenerator.Emit(OpCodes.Ldarg_0);
-                                computeSizeILGenerator.Emit(OpCodes.Ldfld, field);
-                            }
-                            //Write
-                            {
-                                if (sourceElementType == elementType)
-                                {
-                                    GenerateAddCollection(writeILGenerator, writeValueVariable, field);
-                                }
-                                else
-                                {
-                                    var enumerableVariable = writeILGenerator.DeclareLocal(Nullable.GetUnderlyingType(sourceElementType) == null ? typeof(IEnumerable<int>) : typeof(IEnumerable<int?>));
-                                    writeILGenerator.Emit(OpCodes.Ldloc, writeValueVariable);
-                                    writeILGenerator.Emit(OpCodes.Call, typeof(MessageHelper).GetMethod("ConvertToInt", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(IEnumerable<>).MakeGenericType(sourceElementType) }, null));
-                                    writeILGenerator.Emit(OpCodes.Stloc, enumerableVariable);
-                                    GenerateAddCollection(writeILGenerator, enumerableVariable, field);
-                                }
-                                writeILGenerator.Emit(OpCodes.Ldarg_0);
-                                writeILGenerator.Emit(OpCodes.Ldfld, field);
-                            }
-                            //Read
-                            {
-                                //this._{property}
-                                readILGenerator.Emit(OpCodes.Ldarg_0);
-                                readILGenerator.Emit(OpCodes.Ldfld, field);
-                            }
-                            //add this to move collections to this.Source.{Property}
-                            collectionProperties.Add(new Tuple<FieldInfo, PropertyInfo, Type>(field, property, sourceElementType));
-                        }
-                        //ComputeSize
-                        {
-                            //IL: size += collection.CalculateSize(_Codec_{PropertyName});
-                            computeSizeILGenerator.Emit(OpCodes.Ldsfld, codecField);
-                            computeSizeILGenerator.Emit(OpCodes.Call, collectionType.GetMethod("CalculateSize"));
-                            computeSizeILGenerator.Emit(OpCodes.Ldloc, sizeVariable);
-                            computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
-                            computeSizeILGenerator.Emit(OpCodes.Stloc, sizeVariable);
-                        }
-                        //Write
-                        {
-                            //IL: WriteTo(ref writer, _Codec_{PropertyName});
-                            writeILGenerator.Emit(OpCodes.Ldarg_1);
-                            writeILGenerator.Emit(OpCodes.Ldsfld, codecField);
-                            writeILGenerator.Emit(OpCodes.Call, collectionType.GetMethod("WriteTo", new Type[] { typeof(WriteContext).MakeByRefType(), typeof(FieldCodec<>).MakeGenericType(elementType) }));
-                        }
-                        //Read
-                        {
-                            //IL: .AddEntriesFrom(ref parser, _Codec_{PropertyName});
-                            readILGenerator.Emit(OpCodes.Ldarg_1);
-                            readILGenerator.Emit(OpCodes.Ldsfld, codecField);
-                            readILGenerator.Emit(OpCodes.Call, collectionType.GetMethod("AddEntriesFrom", new Type[] { typeof(ParseContext).MakeByRefType(), codecField.FieldType }));
-                        }
-                    }
-                    else if (isDictionary)
-                    {
-                        var sourceElementType = elementType;
-                        if (elementType == typeof(byte) || elementType == typeof(sbyte) || elementType == typeof(short) || elementType == typeof(ushort))
-                            elementType = typeof(int);
-                        if (elementType == typeof(byte?) || elementType == typeof(sbyte?) || elementType == typeof(short?) || elementType == typeof(ushort?))
-                            elementType = typeof(int?);
-                        var sourceElementType2 = elementType2;
-                        if (elementType2 == typeof(byte) || elementType2 == typeof(sbyte) || elementType2 == typeof(short) || elementType2 == typeof(ushort))
-                            elementType2 = typeof(int);
-                        if (elementType2 == typeof(byte?) || elementType2 == typeof(sbyte?) || elementType2 == typeof(short?) || elementType2 == typeof(ushort?))
-                            elementType2 = typeof(int?);
-                        var dictionaryType = typeof(MapField<,>).MakeGenericType(elementType, elementType2);
-
-                        var codecField = typeBuilder.DefineField("_Codec_" + property.Name, typeof(MapField<,>.Codec).MakeGenericType(elementType, elementType2), FieldAttributes.Private | FieldAttributes.Static);
-                        //static constructor
-                        {
-                            //IL: FieldCodec.For{XXX}(tag);
-                            uint tag1, tag2;
-                            if (_ValueTypes.Contains(elementType) || _NullableValueTypes.Contains(elementType))
-                                tag1 = WireFormat.MakeTag(1, WireFormat.WireType.Varint);
-                            else
-                                tag1 = WireFormat.MakeTag(1, WireFormat.WireType.LengthDelimited);
-                            if (_ValueTypes.Contains(elementType2) || _NullableValueTypes.Contains(elementType2))
-                                tag2 = WireFormat.MakeTag(2, WireFormat.WireType.Varint);
-                            else
-                                tag2 = WireFormat.MakeTag(2, WireFormat.WireType.LengthDelimited);
-                            GenerateCodecValue(staticIlGenerator, elementType, tag1);
-                            GenerateCodecValue(staticIlGenerator, elementType2, tag2);
-
-                            staticIlGenerator.Emit(OpCodes.Ldc_I4, (int)tag);
-                            staticIlGenerator.Emit(OpCodes.Newobj, codecField.FieldType.GetConstructors()[0]);
-                            staticIlGenerator.Emit(OpCodes.Stsfld, codecField);
-                        }
-
-                        if (property.PropertyType == dictionaryType)
-                        {
-                            //ComputeSize
-                            {
-                                //IL: value.CalculateSize(_Codec_{PropertyName});
-                                computeSizeILGenerator.Emit(OpCodes.Ldloc, computeSizeValueVariable);
-                            }
-                            //Write
-                            {
-                                //IL: value.WriteTo(ref writer, _Codec_{PropertyName});
-                                writeILGenerator.Emit(OpCodes.Ldloc, writeValueVariable);
-                            }
-                            //Read
-                            {
-                                //this.Source.{property}
-                                readILGenerator.Emit(OpCodes.Ldarg_0);
-                                readILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
-                                readILGenerator.Emit(OpCodes.Callvirt, property.GetMethod);
-                            }
-                        }
-                        else
-                        {
-                            var field = typeBuilder.DefineField("_" + property.Name, dictionaryType, FieldAttributes.Private | FieldAttributes.InitOnly);
-                            speciallyFields.Add(field);
-
-                            //ComputeSize
-                            {
-                                if (sourceElementType != elementType || sourceElementType2 != elementType2)
-                                    GenerateAddDictionaryAndConvert(computeSizeILGenerator, computeSizeValueVariable, field);
-                                else
-                                    GenerateAddDictionary(computeSizeILGenerator, computeSizeValueVariable, field);
-                                computeSizeILGenerator.Emit(OpCodes.Ldarg_0);
-                                computeSizeILGenerator.Emit(OpCodes.Ldfld, field);
-                            }
-                            //Write
-                            {
-                                if (sourceElementType != elementType || sourceElementType2 != elementType2)
-                                    GenerateAddDictionaryAndConvert(writeILGenerator, writeValueVariable, field);
-                                else
-                                    GenerateAddDictionary(writeILGenerator, writeValueVariable, field);
-                                writeILGenerator.Emit(OpCodes.Ldarg_0);
-                                writeILGenerator.Emit(OpCodes.Ldfld, field);
-                            }
-                            //Read
-                            {
-                                //this._{property}
-                                readILGenerator.Emit(OpCodes.Ldarg_0);
-                                readILGenerator.Emit(OpCodes.Ldfld, field);
-                            }
-                            //add this to move dictionary to this.Source.{Property}
-                            dictionaryProperties.Add(new Tuple<FieldInfo, PropertyInfo, Type, Type>(field, property, sourceElementType, sourceElementType2));
-                        }
-
-                        //ComputeSize
-                        {
-                            computeSizeILGenerator.Emit(OpCodes.Ldsfld, codecField);
-                            computeSizeILGenerator.Emit(OpCodes.Call, dictionaryType.GetMethod("CalculateSize"));
-                            computeSizeILGenerator.Emit(OpCodes.Ldloc, sizeVariable);
-                            computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
-                            computeSizeILGenerator.Emit(OpCodes.Stloc, sizeVariable);
-                        }
-                        //Write
-                        {
-                            //IL: WriteTo(ref writer, _Codec_{PropertyName});
-                            writeILGenerator.Emit(OpCodes.Ldarg_1);
-                            writeILGenerator.Emit(OpCodes.Ldsfld, codecField);
-                            writeILGenerator.Emit(OpCodes.Call, dictionaryType.GetMethod("WriteTo", new Type[] { typeof(WriteContext).MakeByRefType(), codecField.FieldType }));
-                        }
-                        //Read
-                        {
-                            //IL: .AddEntriesFrom(ref parser, _Codec_{PropertyName});
-                            readILGenerator.Emit(OpCodes.Ldarg_1);
-                            readILGenerator.Emit(OpCodes.Ldsfld, codecField);
-                            readILGenerator.Emit(OpCodes.Call, dictionaryType.GetMethod("AddEntriesFrom", new Type[] { typeof(ParseContext).MakeByRefType(), codecField.FieldType }));
-                        }
-                    }
-                    else if (property.PropertyType == typeof(string) || property.PropertyType == typeof(byte[]) || property.PropertyType == typeof(ByteString))
-                    {
                         //ComputeSize
                         {
                             //IL: size += CodedOutputStream.Compute{type}Size(value);
-                            computeSizeILGenerator.Emit(OpCodes.Ldloc, computeSizeValueVariable);
-                            if (property.PropertyType == typeof(byte[]))
-                                computeSizeILGenerator.Emit(OpCodes.Call, typeof(ByteString).GetMethod("CopyFrom", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(byte[]) }, null));
-                            computeSizeILGenerator.Emit(OpCodes.Call, property.PropertyType == typeof(string) ? _ComputeStringSizeMethodInfo : _ComputeBytesSizeMethodInfo);
+                            codeGenerator.GenerateCalculateSizeCode(computeSizeILGenerator, computeSizeValueVariable);
                             computeSizeILGenerator.Emit(OpCodes.Ldloc, sizeVariable);
                             computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
-                            computeSizeILGenerator.Emit(OpCodes.Ldc_I4_1);
-                            computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
                             computeSizeILGenerator.Emit(OpCodes.Stloc, sizeVariable);
-                        }
-                        //Write
-                        {
-                            //IL: writer.WriteTag(tag);
-                            writeILGenerator.Emit(OpCodes.Ldarg_1);
-                            writeILGenerator.Emit(OpCodes.Ldc_I4, (int)tag);
-                            writeILGenerator.Emit(OpCodes.Call, _WriteTag);
-
-                            //IL writer.Write{XXX}(source.{Property});
-                            writeILGenerator.Emit(OpCodes.Ldarg_1);
-                            writeILGenerator.Emit(OpCodes.Ldloc, writeValueVariable);
-                            if (property.PropertyType == typeof(byte[]))
-                                writeILGenerator.Emit(OpCodes.Call, typeof(ByteString).GetMethod("CopyFrom", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(byte[]) }, null));
-                            writeILGenerator.Emit(OpCodes.Call, _WriteMethodMap[property.PropertyType]);
-                        }
-                        //Read
-                        {
-                            //IL: this.Source.{Property} = value;
-                            readILGenerator.Emit(OpCodes.Ldarg_0);
-                            readILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
-                            readILGenerator.Emit(OpCodes.Ldarg_1);
-                            readILGenerator.Emit(OpCodes.Call, _ReadMethodMap[property.PropertyType]);
-                            if (property.PropertyType == typeof(byte[]))
-                                readILGenerator.Emit(OpCodes.Call, typeof(ByteString).GetMethod("ToByteArray"));
-                            readILGenerator.Emit(OpCodes.Call, property.SetMethod);
                         }
                     }
                     else
                     {
-                        //ComputeSize
-                        {
-                            computeSizeILGenerator.Emit(OpCodes.Ldloc, computeSizeValueVariable);
-                        }
-                        //Write
-                        {
-                            //IL: writer.WriteTag(tag);
-                            writeILGenerator.Emit(OpCodes.Ldarg_1);
-                            writeILGenerator.Emit(OpCodes.Ldc_I4, (int)tag);
-                            writeILGenerator.Emit(OpCodes.Call, _WriteTag);
+                        GenerateCheckNull(computeSizeILGenerator, computeSizeValueVariable, computeSizeEnd);
+                        GenerateCheckNull(writeILGenerator, writeValueVariable, writeEnd);
 
-                            writeILGenerator.Emit(OpCodes.Ldarg_1);
-                            writeILGenerator.Emit(OpCodes.Ldloc, writeValueVariable);
+                        bool isCollection = false;
+                        bool isDictionary = false;
+                        Type elementType = null;
+                        Type elementType2 = null;
+                        if (property.PropertyType.IsArray)
+                        {
+                            isCollection = true;
+                            elementType = property.PropertyType.GetElementType();
+                        }
+                        else if (property.PropertyType.IsGenericType)
+                        {
+                            var genericType = property.PropertyType.GetGenericTypeDefinition();
+                            if (genericType == typeof(IList<>) || genericType == typeof(List<>) || genericType == typeof(ICollection<>) || genericType == typeof(Collection<>) || genericType == typeof(RepeatedField<>))
+                            {
+                                elementType = property.PropertyType.GetGenericArguments()[0];
+                                isCollection = true;
+                            }
+                            else if (genericType == typeof(Dictionary<,>) || genericType == typeof(IDictionary<,>) || genericType == typeof(MapField<,>))
+                            {
+                                var types = property.PropertyType.GetGenericArguments();
+                                elementType = types[0];
+                                elementType2 = types[1];
+                                isDictionary = true;
+                            }
                         }
 
-                        if (!typeof(IMessage).IsAssignableFrom(property.PropertyType))
+                        //Get the tag value of this property
+                        var tag = WireFormat.MakeTag(index, WireFormat.WireType.LengthDelimited);
+
+                        if (isCollection)
                         {
+                            var collectionType = typeof(RepeatedField<>).MakeGenericType(elementType);
+
+                            _CodeGenerators.TryGetValue(elementType, out codeGenerator);
+
+                            var codecField = typeBuilder.DefineField("_Codec_" + property.Name, typeof(FieldCodec<>).MakeGenericType(elementType), FieldAttributes.Private | FieldAttributes.Static);
+                            //static constructor
+                            {
+                                //IL: _Codec_{PropertyName} = FieldCodec.For{XXX}(tag);
+                                if (codeGenerator == null)
+                                    GenerateCodecValue(staticIlGenerator, elementType, tag);
+                                else
+                                {
+                                    var generatorType = typeof(ICodeGenerator<>).MakeGenericType(elementType);
+                                    staticIlGenerator.Emit(OpCodes.Call, typeof(MessageBuilder).GetMethod("GetCodeGenerator").MakeGenericMethod(elementType));
+                                    staticIlGenerator.Emit(OpCodes.Castclass, generatorType);
+                                    staticIlGenerator.Emit(OpCodes.Ldc_I4, index);
+                                    staticIlGenerator.Emit(OpCodes.Callvirt, generatorType.GetMethod("CreateFieldCodec", new Type[] { typeof(int) }));
+                                }
+                                staticIlGenerator.Emit(OpCodes.Stsfld, codecField);
+                            }
+
+                            if (property.PropertyType == collectionType)
+                            {
+                                //ComputeSize
+                                {
+                                    //IL: value.CalculateSize(_Codec_{PropertyName});
+                                    computeSizeILGenerator.Emit(OpCodes.Ldloc, computeSizeValueVariable);
+                                }
+                                //Write
+                                {
+                                    //IL: value.WriteTo(ref writer, _Codec_{PropertyName});
+                                    writeILGenerator.Emit(OpCodes.Ldloc, writeValueVariable);
+                                }
+                                //Read
+                                {
+                                    //this.Source.{property}
+                                    readILGenerator.Emit(OpCodes.Ldarg_0);
+                                    readILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
+                                    readILGenerator.Emit(OpCodes.Callvirt, property.GetMethod);
+                                }
+                            }
+                            else
+                            {
+                                var field = typeBuilder.DefineField("_" + property.Name, collectionType, FieldAttributes.Private | FieldAttributes.InitOnly);
+                                speciallyFields.Add(field);
+
+                                //ComputeSize
+                                {
+                                    GenerateAddCollection(computeSizeILGenerator, computeSizeValueVariable, field);
+                                    computeSizeILGenerator.Emit(OpCodes.Ldarg_0);
+                                    computeSizeILGenerator.Emit(OpCodes.Ldfld, field);
+                                }
+                                //Write
+                                {
+                                    GenerateAddCollection(writeILGenerator, writeValueVariable, field);
+                                    writeILGenerator.Emit(OpCodes.Ldarg_0);
+                                    writeILGenerator.Emit(OpCodes.Ldfld, field);
+                                }
+                                //Read
+                                {
+                                    //this._{property}
+                                    readILGenerator.Emit(OpCodes.Ldarg_0);
+                                    readILGenerator.Emit(OpCodes.Ldfld, field);
+                                }
+                                //add this to move collections to this.Source.{Property}
+                                collectionProperties.Add(new Tuple<FieldInfo, PropertyInfo, Type>(field, property, elementType));
+                            }
                             //ComputeSize
                             {
-                                computeSizeILGenerator.Emit(OpCodes.Newobj, GetMessageType(property.PropertyType).GetConstructor(new Type[] { property.PropertyType }));
+                                //IL: size += collection.CalculateSize(_Codec_{PropertyName});
+                                computeSizeILGenerator.Emit(OpCodes.Ldsfld, codecField);
+                                computeSizeILGenerator.Emit(OpCodes.Call, collectionType.GetMethod("CalculateSize"));
+                                computeSizeILGenerator.Emit(OpCodes.Ldloc, sizeVariable);
+                                computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
+                                computeSizeILGenerator.Emit(OpCodes.Stloc, sizeVariable);
                             }
                             //Write
                             {
-                                writeILGenerator.Emit(OpCodes.Newobj, GetMessageType(property.PropertyType).GetConstructor(new Type[] { property.PropertyType }));
+                                //IL: WriteTo(ref writer, _Codec_{PropertyName});
+                                writeILGenerator.Emit(OpCodes.Ldarg_1);
+                                writeILGenerator.Emit(OpCodes.Ldsfld, codecField);
+                                writeILGenerator.Emit(OpCodes.Call, collectionType.GetMethod("WriteTo", new Type[] { typeof(WriteContext).MakeByRefType(), codecField.FieldType }));
                             }
                             //Read
                             {
-                                var valueVariable = readILGenerator.DeclareLocal( GetMessageType(property.PropertyType));
-                                readILGenerator.Emit(OpCodes.Newobj, valueVariable.LocalType.GetConstructor(Array.Empty<Type>()));
-                                readILGenerator.Emit(OpCodes.Stloc, valueVariable);
+                                //IL: .AddEntriesFrom(ref parser, _Codec_{PropertyName});
                                 readILGenerator.Emit(OpCodes.Ldarg_1);
-                                readILGenerator.Emit(OpCodes.Ldloc, valueVariable);
-                                readILGenerator.Emit(OpCodes.Call, typeof(ParseContext).GetMethod(nameof(ParseContext.ReadMessage)));
+                                readILGenerator.Emit(OpCodes.Ldsfld, codecField);
+                                readILGenerator.Emit(OpCodes.Call, collectionType.GetMethod("AddEntriesFrom", new Type[] { typeof(ParseContext).MakeByRefType(), codecField.FieldType }));
+                            }
+                        }
+                        else if (isDictionary)
+                        {
+                            var dictionaryType = typeof(MapField<,>).MakeGenericType(elementType, elementType2);
 
-                                readILGenerator.Emit(OpCodes.Ldarg_0);
-                                readILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
-                                readILGenerator.Emit(OpCodes.Ldloc, valueVariable);
-                                readILGenerator.Emit(OpCodes.Call, GetMessageType(property.PropertyType).GetProperty("Source").GetMethod);
-                                readILGenerator.Emit(OpCodes.Callvirt, property.SetMethod);
+                            var codecField = typeBuilder.DefineField("_Codec_" + property.Name, typeof(MapField<,>.Codec).MakeGenericType(elementType, elementType2), FieldAttributes.Private | FieldAttributes.Static);
+                            //static constructor
+                            {
+                                _CodeGenerators.TryGetValue(elementType, out codeGenerator);
+                                if (codeGenerator == null)
+                                {
+                                    GenerateCodecValue(staticIlGenerator, elementType, WireFormat.MakeTag(1, WireFormat.WireType.LengthDelimited));
+                                }
+                                else
+                                {
+                                    var generatorType = typeof(ICodeGenerator<>).MakeGenericType(elementType);
+                                    staticIlGenerator.Emit(OpCodes.Call, typeof(MessageBuilder).GetMethod("GetCodeGenerator").MakeGenericMethod(elementType));
+                                    staticIlGenerator.Emit(OpCodes.Castclass, generatorType);
+                                    staticIlGenerator.Emit(OpCodes.Ldc_I4, 1);
+                                    staticIlGenerator.Emit(OpCodes.Callvirt, generatorType.GetMethod("CreateFieldCodec", new Type[] { typeof(int) }));
+                                }
+                                _CodeGenerators.TryGetValue(elementType2, out codeGenerator);
+                                if (codeGenerator == null)
+                                {
+                                    GenerateCodecValue(staticIlGenerator, elementType2, WireFormat.MakeTag(1, WireFormat.WireType.LengthDelimited));
+                                }
+                                else
+                                {
+                                    var generatorType = typeof(ICodeGenerator<>).MakeGenericType(elementType2);
+                                    staticIlGenerator.Emit(OpCodes.Call, typeof(MessageBuilder).GetMethod("GetCodeGenerator").MakeGenericMethod(elementType2));
+                                    staticIlGenerator.Emit(OpCodes.Castclass, generatorType);
+                                    staticIlGenerator.Emit(OpCodes.Ldc_I4, 2);
+                                    staticIlGenerator.Emit(OpCodes.Callvirt, generatorType.GetMethod("CreateFieldCodec", new Type[] { typeof(int) }));
+                                }
+
+                                //IL: FieldCodec.For{XXX}(tag);
+                                staticIlGenerator.Emit(OpCodes.Ldc_I4, (int)tag);
+                                staticIlGenerator.Emit(OpCodes.Newobj, codecField.FieldType.GetConstructors()[0]);
+                                staticIlGenerator.Emit(OpCodes.Stsfld, codecField);
+                            }
+
+                            if (property.PropertyType == dictionaryType)
+                            {
+                                //ComputeSize
+                                {
+                                    //IL: value.CalculateSize(_Codec_{PropertyName});
+                                    computeSizeILGenerator.Emit(OpCodes.Ldloc, computeSizeValueVariable);
+                                }
+                                //Write
+                                {
+                                    //IL: value.WriteTo(ref writer, _Codec_{PropertyName});
+                                    writeILGenerator.Emit(OpCodes.Ldloc, writeValueVariable);
+                                }
+                                //Read
+                                {
+                                    //this.Source.{property}
+                                    readILGenerator.Emit(OpCodes.Ldarg_0);
+                                    readILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
+                                    readILGenerator.Emit(OpCodes.Callvirt, property.GetMethod);
+                                }
+                            }
+                            else
+                            {
+                                var field = typeBuilder.DefineField("_" + property.Name, dictionaryType, FieldAttributes.Private | FieldAttributes.InitOnly);
+                                speciallyFields.Add(field);
+
+                                //ComputeSize
+                                {
+                                    GenerateAddDictionary(computeSizeILGenerator, computeSizeValueVariable, field);
+                                    computeSizeILGenerator.Emit(OpCodes.Ldarg_0);
+                                    computeSizeILGenerator.Emit(OpCodes.Ldfld, field);
+                                }
+                                //Write
+                                {
+                                    GenerateAddDictionary(writeILGenerator, writeValueVariable, field);
+                                    writeILGenerator.Emit(OpCodes.Ldarg_0);
+                                    writeILGenerator.Emit(OpCodes.Ldfld, field);
+                                }
+                                //Read
+                                {
+                                    //this._{property}
+                                    readILGenerator.Emit(OpCodes.Ldarg_0);
+                                    readILGenerator.Emit(OpCodes.Ldfld, field);
+                                }
+                                //add this to move dictionary to this.Source.{Property}
+                                dictionaryProperties.Add(new Tuple<FieldInfo, PropertyInfo, Type, Type>(field, property, elementType, elementType2));
+                            }
+
+                            //ComputeSize
+                            {
+                                computeSizeILGenerator.Emit(OpCodes.Ldsfld, codecField);
+                                computeSizeILGenerator.Emit(OpCodes.Call, dictionaryType.GetMethod("CalculateSize"));
+                                computeSizeILGenerator.Emit(OpCodes.Ldloc, sizeVariable);
+                                computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
+                                computeSizeILGenerator.Emit(OpCodes.Stloc, sizeVariable);
+                            }
+                            //Write
+                            {
+                                //IL: WriteTo(ref writer, _Codec_{PropertyName});
+                                writeILGenerator.Emit(OpCodes.Ldarg_1);
+                                writeILGenerator.Emit(OpCodes.Ldsfld, codecField);
+                                writeILGenerator.Emit(OpCodes.Call, dictionaryType.GetMethod("WriteTo", new Type[] { typeof(WriteContext).MakeByRefType(), codecField.FieldType }));
+                            }
+                            //Read
+                            {
+                                //IL: .AddEntriesFrom(ref parser, _Codec_{PropertyName});
+                                readILGenerator.Emit(OpCodes.Ldarg_1);
+                                readILGenerator.Emit(OpCodes.Ldsfld, codecField);
+                                readILGenerator.Emit(OpCodes.Call, dictionaryType.GetMethod("AddEntriesFrom", new Type[] { typeof(ParseContext).MakeByRefType(), codecField.FieldType }));
                             }
                         }
                         else
                         {
-                            //Read
+                            //ComputeSize
                             {
-                                var valueVariable = readILGenerator.DeclareLocal(property.PropertyType);
-                                var afterNew = readILGenerator.DefineLabel();
-                                readILGenerator.Emit(OpCodes.Ldarg_0);
-                                readILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
-                                readILGenerator.Emit(OpCodes.Callvirt, property.GetMethod);
-                                readILGenerator.Emit(OpCodes.Stloc, valueVariable);
-
-                                readILGenerator.Emit(OpCodes.Ldloc, valueVariable);
-                                readILGenerator.Emit(OpCodes.Brtrue, afterNew);
-
-                                readILGenerator.Emit(OpCodes.Newobj, property.PropertyType.GetConstructor(Array.Empty<Type>()));
-                                readILGenerator.Emit(OpCodes.Stloc, valueVariable);
-
-                                readILGenerator.MarkLabel(afterNew);
-                                readILGenerator.Emit(OpCodes.Ldarg_1);
-                                readILGenerator.Emit(OpCodes.Ldloc, valueVariable);
-                                readILGenerator.Emit(OpCodes.Call, typeof(ParseContext).GetMethod(nameof(ParseContext.ReadMessage)));
-
-                                readILGenerator.Emit(OpCodes.Ldarg_0);
-                                readILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
-                                readILGenerator.Emit(OpCodes.Ldloc, valueVariable);
-                                readILGenerator.Emit(OpCodes.Callvirt, property.SetMethod);
+                                computeSizeILGenerator.Emit(OpCodes.Ldloc, computeSizeValueVariable);
                             }
-                        }
+                            //Write
+                            {
+                                //IL: writer.WriteTag(tag);
+                                writeILGenerator.Emit(OpCodes.Ldarg_1);
+                                writeILGenerator.Emit(OpCodes.Ldc_I4, (int)tag);
+                                writeILGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod("WriteTag", BindingFlags.Instance | BindingFlags.Public, null, new Type[] { typeof(uint) }, null));
 
-                        //ComputeSize
-                        {
-                            computeSizeILGenerator.Emit(OpCodes.Call, _ComputeMessageSizeMethodInfo);
-                            computeSizeILGenerator.Emit(OpCodes.Ldloc, sizeVariable);
-                            computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
-                            computeSizeILGenerator.Emit(OpCodes.Ldc_I4_1);
-                            computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
-                            computeSizeILGenerator.Emit(OpCodes.Stloc, sizeVariable);
-                        }
-                        //Write
-                        {
-                            writeILGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod(nameof(WriteContext.WriteMessage)));
+                                writeILGenerator.Emit(OpCodes.Ldarg_1);
+                                writeILGenerator.Emit(OpCodes.Ldloc, writeValueVariable);
+                            }
+
+                            if (!typeof(IMessage).IsAssignableFrom(property.PropertyType))
+                            {
+                                if (!referenceWrapTypes.Contains(property.PropertyType))
+                                    referenceWrapTypes.Add(property.PropertyType);
+                                var wrappedType = typeof(Message<>).MakeGenericType(property.PropertyType);
+                                var valueConstructor = (ConstructorBuilder)wrappedType.GetField("ValueConstructor", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
+                                //ComputeSize
+                                {
+                                    computeSizeILGenerator.Emit(OpCodes.Newobj, valueConstructor);
+                                }
+                                //Write
+                                {
+                                    writeILGenerator.Emit(OpCodes.Newobj, valueConstructor);
+                                }
+                                //Read
+                                {
+                                    var valueVariable = readILGenerator.DeclareLocal(wrappedType);
+                                    readILGenerator.Emit(OpCodes.Newobj, (ConstructorBuilder)wrappedType.GetField("EmptyConstructor", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null));
+                                    readILGenerator.Emit(OpCodes.Stloc, valueVariable);
+                                    readILGenerator.Emit(OpCodes.Ldarg_1);
+                                    readILGenerator.Emit(OpCodes.Ldloc, valueVariable);
+                                    readILGenerator.Emit(OpCodes.Call, typeof(ParseContext).GetMethod(nameof(ParseContext.ReadMessage)));
+
+                                    readILGenerator.Emit(OpCodes.Ldarg_0);
+                                    readILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
+                                    readILGenerator.Emit(OpCodes.Ldloc, valueVariable);
+                                    readILGenerator.Emit(OpCodes.Call, wrappedType.GetProperty("Source").GetMethod);
+                                    readILGenerator.Emit(OpCodes.Callvirt, property.SetMethod);
+                                }
+                            }
+                            else
+                            {
+                                //Read
+                                {
+                                    var valueVariable = readILGenerator.DeclareLocal(property.PropertyType);
+                                    var afterNew = readILGenerator.DefineLabel();
+                                    readILGenerator.Emit(OpCodes.Ldarg_0);
+                                    readILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
+                                    readILGenerator.Emit(OpCodes.Callvirt, property.GetMethod);
+                                    readILGenerator.Emit(OpCodes.Stloc, valueVariable);
+
+                                    readILGenerator.Emit(OpCodes.Ldloc, valueVariable);
+                                    readILGenerator.Emit(OpCodes.Brtrue, afterNew);
+
+                                    readILGenerator.Emit(OpCodes.Newobj, property.PropertyType.GetConstructor(Array.Empty<Type>()));
+                                    readILGenerator.Emit(OpCodes.Stloc, valueVariable);
+
+                                    readILGenerator.MarkLabel(afterNew);
+                                    readILGenerator.Emit(OpCodes.Ldarg_1);
+                                    readILGenerator.Emit(OpCodes.Ldloc, valueVariable);
+                                    readILGenerator.Emit(OpCodes.Call, typeof(ParseContext).GetMethod(nameof(ParseContext.ReadMessage)));
+
+                                    readILGenerator.Emit(OpCodes.Ldarg_0);
+                                    readILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
+                                    readILGenerator.Emit(OpCodes.Ldloc, valueVariable);
+                                    readILGenerator.Emit(OpCodes.Callvirt, property.SetMethod);
+                                }
+                            }
+
+                            //ComputeSize
+                            {
+                                computeSizeILGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeMessageSize), BindingFlags.Public | BindingFlags.Static));
+                                computeSizeILGenerator.Emit(OpCodes.Ldloc, sizeVariable);
+                                computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
+                                computeSizeILGenerator.Emit(OpCodes.Ldc_I4_1);
+                                computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
+                                computeSizeILGenerator.Emit(OpCodes.Stloc, sizeVariable);
+                            }
+                            //Write
+                            {
+                                writeILGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod(nameof(WriteContext.WriteMessage)));
+                            }
                         }
                     }
                 }
+                else
+                {
+                    //ComputeSize
+                    codeGenerator.GenerateCalculateSizeCode(computeSizeILGenerator, computeSizeValueVariable);
+                    computeSizeILGenerator.Emit(OpCodes.Ldloc, sizeVariable);
+                    computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
+                    computeSizeILGenerator.Emit(OpCodes.Stloc, sizeVariable);
+
+                    //Write
+                    codeGenerator.GenerateWriteCode(writeILGenerator, writeValueVariable, index);
+
+                    //Read
+                    //IL : this.Source.{Property} = parser.Read{xxx}();
+                    readILGenerator.Emit(OpCodes.Ldarg_0);
+                    readILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
+                    codeGenerator.GenerateReadCode(readILGenerator);
+                    readILGenerator.Emit(OpCodes.Callvirt, property.SetMethod);
+                }
+
 
                 computeSizeILGenerator.MarkLabel(computeSizeEnd);
                 writeILGenerator.MarkLabel(writeEnd);
@@ -761,21 +728,21 @@ namespace Wodsoft.Protobuf
                 var nullable = Nullable.GetUnderlyingType(type) != null;
                 if (nullable)
                     type = Nullable.GetUnderlyingType(type);
-                if (type == typeof(byte) || type == typeof(sbyte) || type == typeof(short) || type == typeof(ushort))
-                {
-                    readILGenerator.Emit(OpCodes.Call, typeof(MessageHelper).GetMethod("ConvertTo" + type.Name, BindingFlags.Public | BindingFlags.Static, null, new Type[] { nullable ? typeof(RepeatedField<int?>) : typeof(RepeatedField<int>) }, null));
-                    if (item.Item2.PropertyType.IsArray)
-                    {
-                        readILGenerator.Emit(OpCodes.Call, typeof(System.Linq.Enumerable).GetMethod("ToArray").MakeGenericMethod(item.Item3));
-                    }
-                    else
-                    {
-                        readILGenerator.Emit(OpCodes.Newobj, typeof(List<>).MakeGenericType(item.Item3).GetConstructor(new Type[] { typeof(IEnumerable<>).MakeGenericType(item.Item3) }));
-                        if (item.Item2.PropertyType == typeof(Collection<>).MakeGenericType(item.Item3))
-                            readILGenerator.Emit(OpCodes.Newobj, typeof(Collection<>).MakeGenericType(item.Item3).GetConstructor(new Type[] { typeof(IList<>).MakeGenericType(item.Item3) }));
-                    }
-                }
-                else if (!item.Item2.PropertyType.IsAssignableFrom(item.Item1.FieldType))
+                //if (type == typeof(byte) || type == typeof(sbyte) || type == typeof(short) || type == typeof(ushort))
+                //{
+                //    readILGenerator.Emit(OpCodes.Call, typeof(MessageHelper).GetMethod("ConvertTo" + type.Name, BindingFlags.Public | BindingFlags.Static, null, new Type[] { nullable ? typeof(RepeatedField<int?>) : typeof(RepeatedField<int>) }, null));
+                //    if (item.Item2.PropertyType.IsArray)
+                //    {
+                //        readILGenerator.Emit(OpCodes.Call, typeof(System.Linq.Enumerable).GetMethod("ToArray").MakeGenericMethod(item.Item3));
+                //    }
+                //    else
+                //    {
+                //        readILGenerator.Emit(OpCodes.Newobj, typeof(List<>).MakeGenericType(item.Item3).GetConstructor(new Type[] { typeof(IEnumerable<>).MakeGenericType(item.Item3) }));
+                //        if (item.Item2.PropertyType == typeof(Collection<>).MakeGenericType(item.Item3))
+                //            readILGenerator.Emit(OpCodes.Newobj, typeof(Collection<>).MakeGenericType(item.Item3).GetConstructor(new Type[] { typeof(IList<>).MakeGenericType(item.Item3) }));
+                //    }
+                //}
+                if (!item.Item2.PropertyType.IsAssignableFrom(item.Item1.FieldType))
                 {
                     if (item.Item2.PropertyType.IsArray)
                         readILGenerator.Emit(OpCodes.Call, typeof(System.Linq.Enumerable).GetMethod("ToArray").MakeGenericMethod(item.Item3));
@@ -793,30 +760,7 @@ namespace Wodsoft.Protobuf
                 readILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
                 readILGenerator.Emit(OpCodes.Ldarg_0);
                 readILGenerator.Emit(OpCodes.Ldfld, item.Item1);
-                var arguments = item.Item1.FieldType.GetGenericArguments();
-                if (arguments[0] != item.Item3 && arguments[1] != item.Item4)
-                {
-                    var targetArgument = item.Item2.PropertyType.GetGenericArguments();
-                    targetArgument[0] = Nullable.GetUnderlyingType(targetArgument[0]) ?? targetArgument[0];
-                    targetArgument[1] = Nullable.GetUnderlyingType(targetArgument[1]) ?? targetArgument[1];
-                    var method = typeof(MessageHelper).GetMethods().First(t => t.Name == "ConvertDictionary" && t.GetParameters()[0].ParameterType == typeof(IDictionary<,>).MakeGenericType(new Type[] { arguments[0], arguments[1] })).MakeGenericMethod(targetArgument);
-                    readILGenerator.Emit(OpCodes.Call, method);
-                }
-                else if (arguments[0] != item.Item3)
-                {
-                    var targetArgument = item.Item2.PropertyType.GetGenericArguments();
-                    targetArgument[0] = Nullable.GetUnderlyingType(targetArgument[0]) ?? targetArgument[0];
-                    var method = typeof(MessageHelper).GetMethods().First(t => t.Name == "ConvertDictionary" && t.GetParameters()[0].ParameterType == typeof(IDictionary<,>).MakeGenericType(new Type[] { arguments[0], t.GetGenericArguments()[1] })).MakeGenericMethod(targetArgument);
-                    readILGenerator.Emit(OpCodes.Call, method);
-                }
-                else if (arguments[1] != item.Item4)
-                {
-                    var targetArgument = item.Item2.PropertyType.GetGenericArguments();
-                    targetArgument[1] = Nullable.GetUnderlyingType(targetArgument[1]) ?? targetArgument[1];
-                    var method = typeof(MessageHelper).GetMethods().First(t => t.Name == "ConvertDictionary" && t.GetParameters()[0].ParameterType == typeof(IDictionary<,>).MakeGenericType(new Type[] { t.GetGenericArguments()[0], arguments[1] })).MakeGenericMethod(targetArgument);
-                    readILGenerator.Emit(OpCodes.Call, method);
-                }
-                else if (!item.Item2.PropertyType.IsAssignableFrom(item.Item1.FieldType))
+                if (!item.Item2.PropertyType.IsAssignableFrom(item.Item1.FieldType))
                 {
                     readILGenerator.Emit(OpCodes.Newobj, item.Item2.PropertyType.GetConstructor(new Type[] { typeof(IDictionary<,>).MakeGenericType(item.Item3, item.Item4) }));
                 }
@@ -844,39 +788,16 @@ namespace Wodsoft.Protobuf
             staticIlGenerator.Emit(OpCodes.Ret);
 
             initFields = speciallyFields.ToArray();
+            referenceTypes = referenceWrapTypes.ToArray();
         }
 
         private static void GenerateCodecValue(ILGenerator staticIlGenerator, Type elementType, uint tag)
         {
             staticIlGenerator.Emit(OpCodes.Ldc_I4, (int)tag);
-            if (_ValueTypes.Contains(elementType))
-            {
-                //IL: FieldCodec.For{XXX}(tag)
-                staticIlGenerator.Emit(OpCodes.Call, _CodecMethodMap[elementType]);
-            }
-            else if (_NullableValueTypes.Contains(elementType))
-            {
-                var type = Nullable.GetUnderlyingType(elementType);
-                //if (type == typeof(byte) || type == typeof(sbyte) || type == typeof(short) || type == typeof(ushort))
-                //    type = typeof(int);
-                //IL: FieldCodec.ForStructWrapper<>(tag)
-                staticIlGenerator.Emit(OpCodes.Call, _CodecMethodMap[type]);
-            }
-            else if (elementType == typeof(string))
-            {
-                staticIlGenerator.Emit(OpCodes.Call, typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForString), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(uint) }, null));
-            }
-            else if (elementType == typeof(ByteString) || elementType == typeof(byte[]))
-            {
-                staticIlGenerator.Emit(OpCodes.Call, typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForBytes), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(uint) }, null));
-            }
-            else
-            {
-                //IL: FieldCodec.ForMessage(tag, {elementType}.Parser);
-                staticIlGenerator.Emit(OpCodes.Ldnull);
-                staticIlGenerator.Emit(OpCodes.Call, (elementType.IsAssignableFrom(typeof(IMessage)) ? elementType : GetMessageType(elementType)).GetProperty("Parser", BindingFlags.Public | BindingFlags.Static).GetMethod);
-                staticIlGenerator.Emit(OpCodes.Call, typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForMessage)).MakeGenericMethod(elementType));
-            }
+            //IL: FieldCodec.ForMessage(tag, {elementType}.Parser);
+            staticIlGenerator.Emit(OpCodes.Ldnull);
+            staticIlGenerator.Emit(OpCodes.Call, (elementType.IsAssignableFrom(typeof(IMessage)) ? elementType : GetMessageType(elementType)).GetProperty("Parser", BindingFlags.Public | BindingFlags.Static).GetMethod);
+            staticIlGenerator.Emit(OpCodes.Call, typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForMessage)).MakeGenericMethod(elementType));
         }
 
         private static void GenerateReadProperty(ILGenerator ilGenerator, LocalBuilder valueVariable, FieldInfo souceField, PropertyInfo property)
@@ -886,27 +807,6 @@ namespace Wodsoft.Protobuf
             ilGenerator.Emit(OpCodes.Ldfld, souceField);
             ilGenerator.Emit(OpCodes.Callvirt, property.GetMethod);
             ilGenerator.Emit(OpCodes.Stloc, valueVariable);
-        }
-
-        private static Type GenerateConvertValue(ILGenerator ilGenerator, LocalBuilder valueVariable, Type type, bool nullable)
-        {
-            ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
-            if (nullable)
-                ilGenerator.Emit(OpCodes.Call, type.GetProperty("Value").GetMethod);
-            if (type == typeof(Guid))
-            {
-                ilGenerator.Emit(OpCodes.Call, typeof(Guid).GetMethod("ToByteArray"));
-                ilGenerator.Emit(OpCodes.Call, typeof(ByteString).GetMethod("CopyFrom", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(byte[]) }, null));
-            }
-            else if (type == typeof(DateTime))
-                ilGenerator.Emit(OpCodes.Call, typeof(Google.Protobuf.WellKnownTypes.Timestamp).GetMethod("FromDateTime", BindingFlags.Public | BindingFlags.Static));
-            else if (type == typeof(DateTimeOffset))
-                ilGenerator.Emit(OpCodes.Call, typeof(Google.Protobuf.WellKnownTypes.Timestamp).GetMethod("FromDateTimeOffset", BindingFlags.Public | BindingFlags.Static));
-            else if (type == typeof(TimeSpan))
-                ilGenerator.Emit(OpCodes.Call, typeof(Google.Protobuf.WellKnownTypes.Duration).GetMethod("FromTimespan", BindingFlags.Public | BindingFlags.Static));
-            else if (type.IsEnum)
-                type = Enum.GetUnderlyingType(type);
-            return type;
         }
 
         private static void GenerateCheckNull(ILGenerator ilGenerator, LocalBuilder valueVariable, Label end)
@@ -959,214 +859,6 @@ namespace Wodsoft.Protobuf
             ilGenerator.Emit(OpCodes.Call, field.FieldType.GetMethods().Where(t => t.Name == "Add").OrderBy(t => t.GetParameters().Length).First());
 
             ilGenerator.MarkLabel(skip);
-        }
-
-        private static void GenerateAddDictionaryAndConvert(ILGenerator ilGenerator, LocalBuilder valueVariable, FieldInfo field)
-        {
-            var enumeratorMethod = valueVariable.LocalType.GetMethod("GetEnumerator");
-            var enumeratorVariable = ilGenerator.DeclareLocal(enumeratorMethod.ReturnType);
-            var keyType = enumeratorMethod.ReturnType.GetProperty("Current").PropertyType.GetProperty("Key").PropertyType;
-            var valueType = enumeratorMethod.ReturnType.GetProperty("Current").PropertyType.GetProperty("Value").PropertyType;
-            var currentVariable = ilGenerator.DeclareLocal(typeof(KeyValuePair<,>).MakeGenericType(keyType, valueType));
-            var kVariable = ilGenerator.DeclareLocal(keyType);
-            var vVariable = ilGenerator.DeclareLocal(valueType);
-            var loopStart = ilGenerator.DefineLabel();
-            var loopNext = ilGenerator.DefineLabel();
-            var tryEnd = ilGenerator.DefineLabel();
-            ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
-            ilGenerator.Emit(OpCodes.Callvirt, enumeratorMethod);
-            ilGenerator.Emit(OpCodes.Stloc, enumeratorVariable);
-
-            ilGenerator.BeginExceptionBlock();
-
-            ilGenerator.Emit(OpCodes.Br, loopNext);
-
-            ilGenerator.MarkLabel(loopStart);
-
-            ilGenerator.Emit(OpCodes.Ldloca, enumeratorVariable);
-            ilGenerator.Emit(OpCodes.Callvirt, enumeratorVariable.LocalType.GetProperty("Current").GetMethod);
-            ilGenerator.Emit(OpCodes.Stloc, currentVariable);
-
-            ilGenerator.Emit(OpCodes.Ldloca, currentVariable);
-            ilGenerator.Emit(OpCodes.Call, currentVariable.LocalType.GetProperty("Key").GetMethod);
-            ilGenerator.Emit(OpCodes.Stloc, kVariable);
-
-            ilGenerator.Emit(OpCodes.Ldloca, currentVariable);
-            ilGenerator.Emit(OpCodes.Call, currentVariable.LocalType.GetProperty("Value").GetMethod);
-            ilGenerator.Emit(OpCodes.Stloc, vVariable);
-
-            ilGenerator.Emit(OpCodes.Ldarg_0);
-            ilGenerator.Emit(OpCodes.Ldfld, field);
-            if (keyType != field.FieldType.GetGenericArguments()[0] && Nullable.GetUnderlyingType(keyType) != null)
-            {
-                ilGenerator.Emit(OpCodes.Ldloca, kVariable);
-                ilGenerator.Emit(OpCodes.Call, keyType.GetMethod("GetValueOrDefault", BindingFlags.Public | BindingFlags.Instance, null, Array.Empty<Type>(), null));
-                ilGenerator.Emit(OpCodes.Newobj, field.FieldType.GetGenericArguments()[0].GetConstructor(new Type[] { typeof(int) }));
-            }
-            else
-            {
-                ilGenerator.Emit(OpCodes.Ldloc, kVariable);
-            }
-            if (valueType != field.FieldType.GetGenericArguments()[1] && Nullable.GetUnderlyingType(valueType) != null)
-            {
-                ilGenerator.Emit(OpCodes.Ldloca, vVariable);
-                ilGenerator.Emit(OpCodes.Call, valueType.GetMethod("GetValueOrDefault", BindingFlags.Public | BindingFlags.Instance, null, Array.Empty<Type>(), null));
-                ilGenerator.Emit(OpCodes.Newobj, field.FieldType.GetGenericArguments()[1].GetConstructor(new Type[] { typeof(int) }));
-            }
-            else
-            {
-                ilGenerator.Emit(OpCodes.Ldloc, vVariable);
-            }
-            ilGenerator.Emit(OpCodes.Call, field.FieldType.GetMethod("Add", field.FieldType.GetGenericArguments()));
-
-            ilGenerator.MarkLabel(loopNext);
-            ilGenerator.Emit(OpCodes.Ldloca, enumeratorVariable);
-            ilGenerator.Emit(OpCodes.Callvirt, enumeratorVariable.LocalType.GetMethod("MoveNext"));
-            ilGenerator.Emit(OpCodes.Brtrue, loopStart);
-
-            ilGenerator.Emit(OpCodes.Leave, tryEnd);
-            ilGenerator.BeginFinallyBlock();
-            ilGenerator.Emit(OpCodes.Ldloca, enumeratorVariable);
-            ilGenerator.Emit(OpCodes.Callvirt, enumeratorVariable.LocalType.GetMethod("Dispose"));
-            ilGenerator.EndExceptionBlock();
-            ilGenerator.MarkLabel(tryEnd);
-        }
-
-
-        #region CalculateSize
-
-        private static readonly MethodInfo _ComputeDoubleSizeMethodInfo = typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeDoubleSize), BindingFlags.Static | BindingFlags.Public);
-        private static readonly MethodInfo _ComputeFloatSizeMethodInfo = typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeFloatSize), BindingFlags.Static | BindingFlags.Public);
-        private static readonly MethodInfo _ComputeInt32SizeMethodInfo = typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeInt32Size), BindingFlags.Static | BindingFlags.Public);
-        private static readonly MethodInfo _ComputeInt64SizeMethodInfo = typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeInt64Size), BindingFlags.Static | BindingFlags.Public);
-        private static readonly MethodInfo _ComputeUInt32SizeMethodInfo = typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeUInt32Size), BindingFlags.Static | BindingFlags.Public);
-        private static readonly MethodInfo _ComputeUInt64SizeMethodInfo = typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeUInt64Size), BindingFlags.Static | BindingFlags.Public);
-        private static readonly MethodInfo _ComputeBoolSizeMethodInfo = typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeBoolSize), BindingFlags.Static | BindingFlags.Public);
-        private static readonly MethodInfo _ComputeStringSizeMethodInfo = typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeStringSize), BindingFlags.Static | BindingFlags.Public);
-        private static readonly MethodInfo _ComputeBytesSizeMethodInfo = typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeBytesSize), BindingFlags.Static | BindingFlags.Public);
-        private static readonly MethodInfo _ComputeMessageSizeMethodInfo = typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeMessageSize), BindingFlags.Static | BindingFlags.Public);
-        private static readonly Dictionary<Type, MethodInfo> _ComputeMethodMap = new Dictionary<Type, MethodInfo>
-        {
-            { typeof(byte), _ComputeInt32SizeMethodInfo },
-            { typeof(sbyte), _ComputeInt32SizeMethodInfo },
-            { typeof(short), _ComputeInt32SizeMethodInfo },
-            { typeof(ushort), _ComputeInt32SizeMethodInfo },
-            { typeof(double), _ComputeDoubleSizeMethodInfo },
-            { typeof(float), _ComputeFloatSizeMethodInfo },
-            { typeof(int), _ComputeInt32SizeMethodInfo },
-            { typeof(long), _ComputeInt64SizeMethodInfo },
-            { typeof(uint), _ComputeUInt32SizeMethodInfo },
-            { typeof(ulong), _ComputeUInt64SizeMethodInfo },
-            { typeof(bool), _ComputeBoolSizeMethodInfo },
-            { typeof(string), _ComputeStringSizeMethodInfo },
-            { typeof(ByteString), _ComputeBytesSizeMethodInfo },
-        };
-        private static readonly Dictionary<Type, MethodInfo> _CodecMethodMap = new Dictionary<Type, MethodInfo>
-        {
-            { typeof(byte), typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForInt32), BindingFlags.Public| BindingFlags.Static, null, new Type[]{ typeof(uint) }, null) },
-            { typeof(sbyte), typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForInt32), BindingFlags.Public| BindingFlags.Static, null, new Type[]{ typeof(uint) }, null) },
-            { typeof(short), typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForInt32), BindingFlags.Public| BindingFlags.Static, null, new Type[]{ typeof(uint) }, null) },
-            { typeof(ushort), typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForInt32), BindingFlags.Public| BindingFlags.Static, null, new Type[]{ typeof(uint) }, null) },
-            { typeof(double), typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForDouble), BindingFlags.Public| BindingFlags.Static, null, new Type[]{ typeof(uint) }, null) },
-            { typeof(float), typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForFloat), BindingFlags.Public| BindingFlags.Static, null, new Type[]{ typeof(uint) }, null) },
-            { typeof(int), typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForInt32), BindingFlags.Public| BindingFlags.Static, null, new Type[]{ typeof(uint) }, null) },
-            { typeof(long), typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForInt64), BindingFlags.Public| BindingFlags.Static, null, new Type[]{ typeof(uint) }, null) },
-            { typeof(uint), typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForUInt32), BindingFlags.Public| BindingFlags.Static, null, new Type[]{ typeof(uint) }, null) },
-            { typeof(ulong), typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForUInt64), BindingFlags.Public| BindingFlags.Static, null, new Type[]{ typeof(uint) }, null) },
-            { typeof(bool), typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForBool), BindingFlags.Public| BindingFlags.Static, null, new Type[]{ typeof(uint) }, null) },
-        };
-
-        #endregion
-
-        #region Write
-
-        private static readonly Dictionary<Type, MethodInfo> _WriteMethodMap = new Dictionary<Type, MethodInfo>
-        {
-            { typeof(byte), typeof(WriteContext).GetMethod(nameof(WriteContext.WriteInt32)) },
-            { typeof(sbyte), typeof(WriteContext).GetMethod(nameof(WriteContext.WriteInt32)) },
-            { typeof(short), typeof(WriteContext).GetMethod(nameof(WriteContext.WriteInt32)) },
-            { typeof(ushort), typeof(WriteContext).GetMethod(nameof(WriteContext.WriteInt32)) },
-            { typeof(double), typeof(WriteContext).GetMethod(nameof(WriteContext.WriteDouble)) },
-            { typeof(float), typeof(WriteContext).GetMethod(nameof(WriteContext.WriteFloat)) },
-            { typeof(int), typeof(WriteContext).GetMethod(nameof(WriteContext.WriteInt32)) },
-            { typeof(long), typeof(WriteContext).GetMethod(nameof(WriteContext.WriteInt64)) },
-            { typeof(uint), typeof(WriteContext).GetMethod(nameof(WriteContext.WriteUInt32)) },
-            { typeof(ulong), typeof(WriteContext).GetMethod(nameof(WriteContext.WriteUInt64)) },
-            { typeof(bool), typeof(WriteContext).GetMethod(nameof(WriteContext.WriteBool)) },
-            { typeof(string), typeof(WriteContext).GetMethod(nameof(WriteContext.WriteString)) },
-            { typeof(ByteString), typeof(WriteContext).GetMethod(nameof(WriteContext.WriteBytes)) },
-            { typeof(Guid), typeof(WriteContext).GetMethod(nameof(WriteContext.WriteBytes)) },
-            { typeof(DateTime), typeof(WriteContext).GetMethod(nameof(WriteContext.WriteMessage)) },
-            { typeof(DateTimeOffset), typeof(WriteContext).GetMethod(nameof(WriteContext.WriteMessage)) },
-            { typeof(TimeSpan), typeof(WriteContext).GetMethod(nameof(WriteContext.WriteMessage)) },
-        };
-        private static readonly MethodInfo _WriteTag = typeof(WriteContext).GetMethod("WriteTag", BindingFlags.Instance | BindingFlags.Public, null, new Type[] { typeof(uint) }, null);
-
-        #endregion
-
-        #region Read
-
-        private static readonly Dictionary<Type, MethodInfo> _ReadMethodMap = new Dictionary<Type, MethodInfo>
-        {
-            { typeof(byte), typeof(ParseContext).GetMethod(nameof(ParseContext.ReadInt32)) },
-            { typeof(sbyte), typeof(ParseContext).GetMethod(nameof(ParseContext.ReadInt32)) },
-            { typeof(short), typeof(ParseContext).GetMethod(nameof(ParseContext.ReadInt32)) },
-            { typeof(ushort), typeof(ParseContext).GetMethod(nameof(ParseContext.ReadInt32)) },
-            { typeof(double), typeof(ParseContext).GetMethod(nameof(ParseContext.ReadDouble)) },
-            { typeof(float), typeof(ParseContext).GetMethod(nameof(ParseContext.ReadFloat)) },
-            { typeof(int), typeof(ParseContext).GetMethod(nameof(ParseContext.ReadInt32)) },
-            { typeof(long), typeof(ParseContext).GetMethod(nameof(ParseContext.ReadInt64)) },
-            { typeof(uint), typeof(ParseContext).GetMethod(nameof(ParseContext.ReadUInt32)) },
-            { typeof(ulong), typeof(ParseContext).GetMethod(nameof(ParseContext.ReadUInt64)) },
-            { typeof(bool), typeof(ParseContext).GetMethod(nameof(ParseContext.ReadBool)) },
-            { typeof(string), typeof(ParseContext).GetMethod(nameof(ParseContext.ReadString)) },
-            { typeof(ByteString), typeof(ParseContext).GetMethod(nameof(ParseContext.ReadBytes)) },
-            { typeof(Guid), typeof(ParseContext).GetMethod(nameof(ParseContext.ReadBytes)) },
-            { typeof(DateTime), typeof(ParseContext).GetMethod(nameof(ParseContext.ReadMessage)) },
-            { typeof(DateTimeOffset), typeof(ParseContext).GetMethod(nameof(ParseContext.ReadMessage)) },
-            { typeof(TimeSpan), typeof(ParseContext).GetMethod(nameof(ParseContext.ReadMessage)) },
-        };
-
-        #endregion
-
-        private static readonly Type[] _ValueTypes = new Type[] { typeof(byte), typeof(sbyte), typeof(short), typeof(ushort), typeof(double), typeof(float), typeof(int), typeof(long), typeof(uint), typeof(ulong), typeof(bool) };
-        private static readonly Type[] _NullableValueTypes = new Type[] { typeof(byte?), typeof(sbyte?), typeof(short?), typeof(ushort?), typeof(double?), typeof(float?), typeof(int?), typeof(long?), typeof(uint?), typeof(ulong?), typeof(bool?) };
-        private static readonly Type[] _ScalarValueTypes = new Type[] { typeof(double), typeof(float), typeof(int), typeof(long), typeof(uint), typeof(ulong),
-            typeof(bool), typeof(Guid), typeof(string), typeof(ByteString), typeof(DateTime), typeof(DateTimeOffset), typeof(TimeSpan), typeof(byte[]),
-            typeof(double?), typeof(float?), typeof(int?), typeof(long?), typeof(uint?), typeof(ulong?), typeof(bool?), typeof(Guid?)};
-        private static Exception TypeCheck(PropertyInfo property)
-        {
-            Type type = property.PropertyType;
-            if (_ScalarValueTypes.Contains(type))
-                return null;
-            if (type.IsEnum)
-                return null;
-            if (type.IsAssignableFrom(typeof(IMessage)))
-                return null;
-            if (type.IsArray)
-                type = type.GetElementType();
-            if (type.IsGenericType && (type.GetGenericTypeDefinition() == typeof(List<>) || type.GetGenericTypeDefinition() == typeof(Collection<>) || type.GetGenericTypeDefinition() == typeof(Nullable<>)))
-                type = type.GetGenericArguments()[0];
-            Exception ex = null;
-            if (type.IsClass)
-                ex = TypeCheck(type);
-            return new NotSupportedException($"Type \"{property.PropertyType}\" of \"{property.DeclaringType.FullName}.{property.Name}\" is not support by grpc.", ex);
-        }
-
-        private static readonly ConcurrentDictionary<Type, Exception> _TypeChecks = new ConcurrentDictionary<Type, Exception>();
-        private static Exception TypeCheck(Type type)
-        {
-            return _TypeChecks.GetOrAdd(type, _ =>
-            {
-                Exception ex;
-                foreach (var prop in GetProperties(type))
-                {
-                    ex = TypeCheck(prop);
-                    if (ex != null)
-                        return ex;
-                }
-                return null;
-            });
         }
     }
 }

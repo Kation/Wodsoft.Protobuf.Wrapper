@@ -1,6 +1,8 @@
+using Google.Protobuf;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Wodsoft.Protobuf.Generators;
 using Xunit;
 
 namespace Wodsoft.Protobuf.Wrapper.Test

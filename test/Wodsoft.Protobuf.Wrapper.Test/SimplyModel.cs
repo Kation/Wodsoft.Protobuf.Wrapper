@@ -29,5 +29,11 @@ namespace Wodsoft.Protobuf.Wrapper.Test
         public short ShortValue { get; set; }
 
         public ushort UShortValue { get; set; }
+
+        public DateTime DateTime { get; set; }
+
+        public DateTimeOffset DateTimeOffset { get; set; }
+
+        public TimeSpan TimeSpan { get; set; }
     }
 }

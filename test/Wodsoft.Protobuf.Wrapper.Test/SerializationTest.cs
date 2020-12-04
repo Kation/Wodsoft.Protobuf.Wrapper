@@ -26,7 +26,10 @@ namespace Wodsoft.Protobuf.Wrapper.Test
                 UInt32Value = 203947109,
                 UInt64Value = 21389172947123912,
                 ShortValue = -16234,
-                UShortValue = 36312
+                UShortValue = 36312,
+                DateTime = new DateTime(2020, 7, 6, 6, 54, 10, DateTimeKind.Utc),
+                DateTimeOffset = new DateTimeOffset(2020, 6, 5, 23, 11, 2, TimeSpan.FromHours(8)),
+                TimeSpan = TimeSpan.FromHours(2.3)
             };
 
             MemoryStream stream = new MemoryStream();
@@ -47,6 +50,9 @@ namespace Wodsoft.Protobuf.Wrapper.Test
             Assert.Equal(model2.UInt64Value, model.UInt64Value);
             Assert.Equal(model2.ShortValue, model.ShortValue);
             Assert.Equal(model2.UShortValue, model.UShortValue);
+            Assert.Equal(model2.DateTime, model.DateTime);
+            Assert.Equal(model2.DateTimeOffset, model.DateTimeOffset);
+            Assert.Equal(model2.TimeSpan, model.TimeSpan);
         }
 
         [Fact]
@@ -123,6 +129,11 @@ namespace Wodsoft.Protobuf.Wrapper.Test
             model.NullableUShortArray = new ushort?[] { 32556, 1565 };
             model.LongArray = new long[] { 16581231238, 6545232521 };
             model.NullableLongArray = new long?[] { 325512312341232346, 1512312312433443465 };
+            model.TimeSpanCollection = new List<TimeSpan>();
+            model.TimeSpanCollection.Add(TimeSpan.FromHours(1.1));
+            model.TimeSpanCollection.Add(TimeSpan.FromHours(0.2));
+            model.TimeSpanCollection.Add(TimeSpan.FromHours(123));
+            model.TimeSpanCollection.Add(TimeSpan.FromHours(42349));
 
             MemoryStream stream = new MemoryStream();
             Message.Serialize(stream, model);
@@ -144,6 +155,7 @@ namespace Wodsoft.Protobuf.Wrapper.Test
             Assert.Equal<ushort?>(model.NullableUShortArray, model2.NullableUShortArray);
             Assert.Equal<long>(model.LongArray, model2.LongArray);
             Assert.Equal<long?>(model.NullableLongArray, model2.NullableLongArray);
+            Assert.Equal<TimeSpan>(model.TimeSpanCollection, model2.TimeSpanCollection);
         }
 
         [Fact]
@@ -166,9 +178,9 @@ namespace Wodsoft.Protobuf.Wrapper.Test
             stream.Position = 0;
             var model2 = Message<DictionaryModel>.Deserialize(stream);
 
-            Assert.Equal(model.StringMap, model2.StringMap);
-            Assert.Equal(model.ByteMap, model2.ByteMap);
-            Assert.Equal(model.ShortMap, model2.ShortMap);
+            Assert.Equal<KeyValuePair<string, string>>(model.StringMap, model2.StringMap);
+            Assert.Equal<KeyValuePair<byte, string>>(model.ByteMap, model2.ByteMap);
+            Assert.Equal<KeyValuePair<string, short?>>(model.ShortMap, model2.ShortMap);
         }
 
         [Fact]
