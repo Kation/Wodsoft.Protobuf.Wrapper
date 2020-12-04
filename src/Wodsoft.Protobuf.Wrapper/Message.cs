@@ -146,7 +146,7 @@ namespace Wodsoft.Protobuf
         }
 
         /// <summary>
-        /// Create a message wrapper with a new T() as source.
+        /// Create a message wrapper with a new <typeparamref name="T"/>() as source.
         /// </summary>
         public Message()
         {
@@ -162,6 +162,9 @@ namespace Wodsoft.Protobuf
             Source = source;
         }
 
+        /// <summary>
+        /// Source value of <typeparamref name="T"/>.
+        /// </summary>
         protected T SourceValue;
         /// <summary>
         /// Get or set object source for wrapper.
