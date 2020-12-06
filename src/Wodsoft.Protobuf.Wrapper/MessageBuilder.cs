@@ -65,7 +65,7 @@ namespace Wodsoft.Protobuf
         /// </summary>
         /// <typeparam name="T">Object type.</typeparam>
         /// <param name="codeGenerator">Code generator of type <typeparamref name="T"/>.</param>
-        public static void SetCodeGenerator<T>(ICodeGenerator codeGenerator)
+        public static void SetCodeGenerator<T>(ICodeGenerator<T> codeGenerator)
             where T : struct
         {
             _CodeGenerators[typeof(T)] = codeGenerator ?? throw new ArgumentNullException(nameof(codeGenerator));
@@ -76,10 +76,11 @@ namespace Wodsoft.Protobuf
         /// </summary>
         /// <typeparam name="T">Object type.</typeparam>
         /// <returns>Return code generator if exists, otherwise null.</returns>
-        public static ICodeGenerator GetCodeGenerator<T>()
+        public static ICodeGenerator<T> GetCodeGenerator<T>()
         {
-            _CodeGenerators.TryGetValue(typeof(T), out var value);
-            return value;
+            if (_CodeGenerators.TryGetValue(typeof(T), out var value))
+                return (ICodeGenerator<T>)value;
+            return null;
         }
 
         /// <summary>
@@ -97,7 +98,7 @@ namespace Wodsoft.Protobuf
         /// <typeparam name="T">Type of object.</typeparam>
         /// <returns>Return message wrapper type.</returns>
         public static Type GetMessageType<T>()
-            where T : class, new()
+            where T : new()
         {
             var type = Message<T>.MessageType;
             if (type == null)
@@ -285,8 +286,21 @@ namespace Wodsoft.Protobuf
 
                 _CodeGenerators.TryGetValue(property.PropertyType, out var codeGenerator);
 
-                GenerateReadProperty(computeSizeILGenerator, computeSizeValueVariable, sourceFieldInfo, property);
-                GenerateReadProperty(writeILGenerator, writeValueVariable, sourceFieldInfo, property);
+                //GenerateReadProperty(computeSizeILGenerator, computeSizeValueVariable, sourceFieldInfo, property);
+                //ComputeSize
+                {
+                    computeSizeILGenerator.Emit(OpCodes.Ldarg_0);
+                    computeSizeILGenerator.Emit(OpCodes.Callvirt, property.GetMethod);
+                    computeSizeILGenerator.Emit(OpCodes.Stloc, computeSizeValueVariable);
+                }
+                //Write
+                {
+                    writeILGenerator.Emit(OpCodes.Ldarg_0);
+                    writeILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
+                    writeILGenerator.Emit(OpCodes.Callvirt, property.GetMethod);
+                    writeILGenerator.Emit(OpCodes.Stloc, writeValueVariable);
+                }
+                //GenerateReadProperty(writeILGenerator, writeValueVariable, sourceFieldInfo, property);
 
                 if (codeGenerator == null)
                 {
@@ -357,6 +371,9 @@ namespace Wodsoft.Protobuf
                         {
                             //IL: size += CodedOutputStream.Compute{type}Size(value);
                             codeGenerator.GenerateCalculateSizeCode(computeSizeILGenerator, computeSizeValueVariable);
+                            //add tag length
+                            computeSizeILGenerator.Emit(OpCodes.Ldc_I4, CodedOutputStream.ComputeTagSize(index));
+                            computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
                             computeSizeILGenerator.Emit(OpCodes.Ldloc, sizeVariable);
                             computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
                             computeSizeILGenerator.Emit(OpCodes.Stloc, sizeVariable);
@@ -407,7 +424,7 @@ namespace Wodsoft.Protobuf
                             {
                                 //IL: _Codec_{PropertyName} = FieldCodec.For{XXX}(tag);
                                 if (codeGenerator == null)
-                                    GenerateCodecValue(staticIlGenerator, elementType, tag);
+                                    GenerateCodecValue(staticIlGenerator, elementType, index);
                                 else
                                 {
                                     var generatorType = typeof(ICodeGenerator<>).MakeGenericType(elementType);
@@ -446,9 +463,15 @@ namespace Wodsoft.Protobuf
 
                                 //ComputeSize
                                 {
-                                    GenerateAddCollection(computeSizeILGenerator, computeSizeValueVariable, field);
-                                    computeSizeILGenerator.Emit(OpCodes.Ldarg_0);
-                                    computeSizeILGenerator.Emit(OpCodes.Ldfld, field);
+                                    var collectionVariable = computeSizeILGenerator.DeclareLocal(collectionType);
+                                    computeSizeILGenerator.Emit(OpCodes.Newobj, collectionType.GetConstructor(Array.Empty<Type>()));
+                                    computeSizeILGenerator.Emit(OpCodes.Stloc, collectionVariable);
+                                    //IL: collection.AddRange(value);
+                                    computeSizeILGenerator.Emit(OpCodes.Ldloc, collectionVariable);
+                                    computeSizeILGenerator.Emit(OpCodes.Ldloc, computeSizeValueVariable);
+                                    computeSizeILGenerator.Emit(OpCodes.Call, field.FieldType.GetMethod("AddRange"));
+
+                                    computeSizeILGenerator.Emit(OpCodes.Ldloc, collectionVariable);
                                 }
                                 //Write
                                 {
@@ -499,7 +522,7 @@ namespace Wodsoft.Protobuf
                                 _CodeGenerators.TryGetValue(elementType, out codeGenerator);
                                 if (codeGenerator == null)
                                 {
-                                    GenerateCodecValue(staticIlGenerator, elementType, WireFormat.MakeTag(1, WireFormat.WireType.LengthDelimited));
+                                    GenerateCodecValue(staticIlGenerator, elementType, 1);
                                 }
                                 else
                                 {
@@ -512,7 +535,7 @@ namespace Wodsoft.Protobuf
                                 _CodeGenerators.TryGetValue(elementType2, out codeGenerator);
                                 if (codeGenerator == null)
                                 {
-                                    GenerateCodecValue(staticIlGenerator, elementType2, WireFormat.MakeTag(1, WireFormat.WireType.LengthDelimited));
+                                    GenerateCodecValue(staticIlGenerator, elementType2, 2);
                                 }
                                 else
                                 {
@@ -556,9 +579,16 @@ namespace Wodsoft.Protobuf
 
                                 //ComputeSize
                                 {
-                                    GenerateAddDictionary(computeSizeILGenerator, computeSizeValueVariable, field);
-                                    computeSizeILGenerator.Emit(OpCodes.Ldarg_0);
-                                    computeSizeILGenerator.Emit(OpCodes.Ldfld, field);
+
+                                    var dictionaryVariable = computeSizeILGenerator.DeclareLocal(dictionaryType);
+                                    computeSizeILGenerator.Emit(OpCodes.Newobj, dictionaryType.GetConstructor(Array.Empty<Type>()));
+                                    computeSizeILGenerator.Emit(OpCodes.Stloc, dictionaryVariable);
+                                    //IL: collection.AddRange(value);
+                                    computeSizeILGenerator.Emit(OpCodes.Ldloc, dictionaryVariable);
+                                    computeSizeILGenerator.Emit(OpCodes.Ldloc, computeSizeValueVariable);
+                                    computeSizeILGenerator.Emit(OpCodes.Call, field.FieldType.GetMethod("Add", new Type[] { typeof(IDictionary<,>).MakeGenericType(elementType, elementType2) }));
+
+                                    computeSizeILGenerator.Emit(OpCodes.Ldloc, dictionaryVariable);
                                 }
                                 //Write
                                 {
@@ -601,53 +631,29 @@ namespace Wodsoft.Protobuf
                         }
                         else
                         {
-                            //ComputeSize
+                            if (typeof(IMessage).IsAssignableFrom(property.PropertyType))
                             {
-                                computeSizeILGenerator.Emit(OpCodes.Ldloc, computeSizeValueVariable);
-                            }
-                            //Write
-                            {
-                                //IL: writer.WriteTag(tag);
-                                writeILGenerator.Emit(OpCodes.Ldarg_1);
-                                writeILGenerator.Emit(OpCodes.Ldc_I4, (int)tag);
-                                writeILGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod("WriteTag", BindingFlags.Instance | BindingFlags.Public, null, new Type[] { typeof(uint) }, null));
-
-                                writeILGenerator.Emit(OpCodes.Ldarg_1);
-                                writeILGenerator.Emit(OpCodes.Ldloc, writeValueVariable);
-                            }
-
-                            if (!typeof(IMessage).IsAssignableFrom(property.PropertyType))
-                            {
-                                if (!referenceWrapTypes.Contains(property.PropertyType))
-                                    referenceWrapTypes.Add(property.PropertyType);
-                                var wrappedType = typeof(Message<>).MakeGenericType(property.PropertyType);
-                                var valueConstructor = (ConstructorBuilder)wrappedType.GetField("ValueConstructor", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
                                 //ComputeSize
                                 {
-                                    computeSizeILGenerator.Emit(OpCodes.Newobj, valueConstructor);
+                                    computeSizeILGenerator.Emit(OpCodes.Ldloc, computeSizeValueVariable);
+                                    computeSizeILGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeMessageSize), BindingFlags.Public | BindingFlags.Static));
+                                    computeSizeILGenerator.Emit(OpCodes.Ldc_I4, CodedOutputStream.ComputeTagSize(index));
+                                    computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
+                                    computeSizeILGenerator.Emit(OpCodes.Ldloc, sizeVariable);
+                                    computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
+                                    computeSizeILGenerator.Emit(OpCodes.Stloc, sizeVariable);
                                 }
                                 //Write
                                 {
-                                    writeILGenerator.Emit(OpCodes.Newobj, valueConstructor);
-                                }
-                                //Read
-                                {
-                                    var valueVariable = readILGenerator.DeclareLocal(wrappedType);
-                                    readILGenerator.Emit(OpCodes.Newobj, (ConstructorBuilder)wrappedType.GetField("EmptyConstructor", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null));
-                                    readILGenerator.Emit(OpCodes.Stloc, valueVariable);
-                                    readILGenerator.Emit(OpCodes.Ldarg_1);
-                                    readILGenerator.Emit(OpCodes.Ldloc, valueVariable);
-                                    readILGenerator.Emit(OpCodes.Call, typeof(ParseContext).GetMethod(nameof(ParseContext.ReadMessage)));
+                                    //IL: writer.WriteTag(tag);
+                                    writeILGenerator.Emit(OpCodes.Ldarg_1);
+                                    writeILGenerator.Emit(OpCodes.Ldc_I4, (int)tag);
+                                    writeILGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod("WriteTag", BindingFlags.Instance | BindingFlags.Public, null, new Type[] { typeof(uint) }, null));
 
-                                    readILGenerator.Emit(OpCodes.Ldarg_0);
-                                    readILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
-                                    readILGenerator.Emit(OpCodes.Ldloc, valueVariable);
-                                    readILGenerator.Emit(OpCodes.Call, wrappedType.GetProperty("Source").GetMethod);
-                                    readILGenerator.Emit(OpCodes.Callvirt, property.SetMethod);
+                                    writeILGenerator.Emit(OpCodes.Ldarg_1);
+                                    writeILGenerator.Emit(OpCodes.Ldloc, writeValueVariable);
+                                    writeILGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod(nameof(WriteContext.WriteMessage)));
                                 }
-                            }
-                            else
-                            {
                                 //Read
                                 {
                                     var valueVariable = readILGenerator.DeclareLocal(property.PropertyType);
@@ -674,19 +680,22 @@ namespace Wodsoft.Protobuf
                                     readILGenerator.Emit(OpCodes.Callvirt, property.SetMethod);
                                 }
                             }
-
-                            //ComputeSize
+                            else
                             {
-                                computeSizeILGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeMessageSize), BindingFlags.Public | BindingFlags.Static));
+                                codeGenerator = (ICodeGenerator)Activator.CreateInstance(typeof(ObjectCodeGenerator<>).MakeGenericType(property.PropertyType));
+
+                                codeGenerator.GenerateCalculateSizeCode(computeSizeILGenerator, computeSizeValueVariable);
+                                computeSizeILGenerator.Emit(OpCodes.Ldc_I4, CodedOutputStream.ComputeTagSize(index));
+                                computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
                                 computeSizeILGenerator.Emit(OpCodes.Ldloc, sizeVariable);
                                 computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
-                                computeSizeILGenerator.Emit(OpCodes.Ldc_I4_1);
-                                computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
                                 computeSizeILGenerator.Emit(OpCodes.Stloc, sizeVariable);
-                            }
-                            //Write
-                            {
-                                writeILGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod(nameof(WriteContext.WriteMessage)));
+
+                                codeGenerator.GenerateWriteCode(writeILGenerator, writeValueVariable, index);
+                                readILGenerator.Emit(OpCodes.Ldarg_0);
+                                readILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
+                                codeGenerator.GenerateReadCode(readILGenerator);
+                                readILGenerator.Emit(OpCodes.Callvirt, property.SetMethod);
                             }
                         }
                     }
@@ -695,6 +704,9 @@ namespace Wodsoft.Protobuf
                 {
                     //ComputeSize
                     codeGenerator.GenerateCalculateSizeCode(computeSizeILGenerator, computeSizeValueVariable);
+                    //add tag length
+                    computeSizeILGenerator.Emit(OpCodes.Ldc_I4, CodedOutputStream.ComputeTagSize(index));
+                    computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
                     computeSizeILGenerator.Emit(OpCodes.Ldloc, sizeVariable);
                     computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
                     computeSizeILGenerator.Emit(OpCodes.Stloc, sizeVariable);
@@ -779,6 +791,7 @@ namespace Wodsoft.Protobuf
                 typeBuilder.DefineMethodOverride(calculateSizeMethodBuilder, baseType.GetMethod("CalculateSize", BindingFlags.NonPublic | BindingFlags.Instance));
 
                 calculateSizeILGenerator.Emit(OpCodes.Ldarg_0);
+                calculateSizeILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
                 calculateSizeILGenerator.Emit(OpCodes.Call, computeSizeMethodBuilder);
                 calculateSizeILGenerator.Emit(OpCodes.Ret);
             }
@@ -791,13 +804,31 @@ namespace Wodsoft.Protobuf
             referenceTypes = referenceWrapTypes.ToArray();
         }
 
-        private static void GenerateCodecValue(ILGenerator staticIlGenerator, Type elementType, uint tag)
+        private static void GenerateCodecValue(ILGenerator staticILGenerator, Type elementType, int fieldNumber)
         {
-            staticIlGenerator.Emit(OpCodes.Ldc_I4, (int)tag);
-            //IL: FieldCodec.ForMessage(tag, {elementType}.Parser);
-            staticIlGenerator.Emit(OpCodes.Ldnull);
-            staticIlGenerator.Emit(OpCodes.Call, (elementType.IsAssignableFrom(typeof(IMessage)) ? elementType : GetMessageType(elementType)).GetProperty("Parser", BindingFlags.Public | BindingFlags.Static).GetMethod);
-            staticIlGenerator.Emit(OpCodes.Call, typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForMessage)).MakeGenericMethod(elementType));
+            if (typeof(IMessage).IsAssignableFrom(elementType))
+            {
+                staticILGenerator.Emit(OpCodes.Ldc_I4, (int)WireFormat.MakeTag(fieldNumber, WireFormat.WireType.LengthDelimited));
+                staticILGenerator.Emit(OpCodes.Ldtoken, typeof(Func<>).MakeGenericType(elementType));
+                staticILGenerator.Emit(OpCodes.Call, typeof(Type).GetMethod("GetTypeFromHandle", new Type[1] { typeof(RuntimeTypeHandle) }));
+                staticILGenerator.Emit(OpCodes.Ldtoken, typeof(MessageBuilder).GetMethod("MessageFactory", BindingFlags.NonPublic | BindingFlags.Static).MakeGenericMethod(elementType));
+                staticILGenerator.Emit(OpCodes.Call, typeof(MethodBase).GetMethod("GetMethodFromHandle", new Type[1] { typeof(RuntimeMethodHandle) }));
+                staticILGenerator.Emit(OpCodes.Call, typeof(Delegate).GetMethod(nameof(Delegate.CreateDelegate), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(Type), typeof(MethodInfo) }, null));
+                staticILGenerator.Emit(OpCodes.Call, typeof(FieldCodec).GetMethod("ForMessage").MakeGenericMethod(elementType));
+            }
+            else
+            {
+                var codeGeneratorType = typeof(ObjectCodeGenerator<>).MakeGenericType(elementType);
+                staticILGenerator.Emit(OpCodes.Newobj, codeGeneratorType.GetConstructor(Array.Empty<Type>()));
+                staticILGenerator.Emit(OpCodes.Ldc_I4, fieldNumber);
+                staticILGenerator.Emit(OpCodes.Call, codeGeneratorType.GetMethod("CreateFieldCodec"));
+            }
+        }
+
+        private static T MessageFactory<T>()
+            where T : IMessage, new()
+        {
+            return new T();
         }
 
         private static void GenerateReadProperty(ILGenerator ilGenerator, LocalBuilder valueVariable, FieldInfo souceField, PropertyInfo property)

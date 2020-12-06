@@ -26,8 +26,6 @@ namespace Wodsoft.Protobuf.Generators
         {
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
             ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeBoolSize), BindingFlags.Static | BindingFlags.Public));
-            ilGenerator.Emit(OpCodes.Ldc_I4_1);
-            ilGenerator.Emit(OpCodes.Add_Ovf);
         }
 
         public override void GenerateReadCode(ILGenerator ilGenerator)

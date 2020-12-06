@@ -10,10 +10,8 @@ namespace Wodsoft.Protobuf.Generators
     /// <summary>
     /// ByteString code generator.
     /// </summary>
-    public class ByteStringCodeGenerator : PrimitiveCodeGenerator<ByteString>
+    public class ByteStringCodeGenerator : ClassCodeGenerator<ByteString>
     {
-        public override WireFormat.WireType WireType => WireFormat.WireType.LengthDelimited;
-
         public override FieldCodec<ByteString> CreateFieldCodec(int fieldNumber)
         {
             return FieldCodec.ForBytes(WireFormat.MakeTag(fieldNumber, WireType));
@@ -23,8 +21,6 @@ namespace Wodsoft.Protobuf.Generators
         {
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
             ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeBytesSize), BindingFlags.Static | BindingFlags.Public));
-            ilGenerator.Emit(OpCodes.Ldc_I4_1);
-            ilGenerator.Emit(OpCodes.Add_Ovf);
         }
 
         public override void GenerateReadCode(ILGenerator ilGenerator)

@@ -232,5 +232,67 @@ namespace Wodsoft.Protobuf.Wrapper.Test
             Assert.Equal(model.Model.IntValue, model2.Model.IntValue);
             Assert.Equal(model.Model.StringValue, model2.Model.StringValue);
         }
+
+        [Fact]
+        public void Object_Class_Collection_Test()
+        {
+            ObjectCollectionModel model = new ObjectCollectionModel();
+            model.Users = new List<UserModel>();
+            model.Users.Add(new UserModel
+            {
+                UserId = "a",
+                UserName = "a"
+            });
+            model.Users.Add(new UserModel
+            {
+                UserId = "b",
+                UserName = "b"
+            });
+
+            MemoryStream stream = new MemoryStream();
+            Message.Serialize(stream, model);
+
+            stream.Position = 0;
+            var model2 = Message<ObjectCollectionModel>.Deserialize(stream);
+
+            Assert.NotNull(model2.Users);
+            Assert.Equal(model.Users[0].UserId, model.Users[0].UserId);
+            Assert.Equal(model.Users[0].UserName, model.Users[0].UserName);
+            Assert.Equal(model.Users[1].UserId, model.Users[1].UserId);
+            Assert.Equal(model.Users[1].UserName, model.Users[1].UserName);
+        }
+
+        [Fact]
+        public void Object_Class_Dictionary_Test()
+        {
+            ObjectDictionaryModel model = new ObjectDictionaryModel();
+            model.Users = new Dictionary<int, UserModel>();
+            model.Users[2] = new UserModel
+            {
+                UserId = "a",
+                UserName = "a"
+            };
+            model.Users[1] = new UserModel
+            {
+                UserId = "b",
+                UserName = "b"
+            };
+            //model.Test = new Dictionary<int, int>();
+            //model.Test[0] = 100;
+            //model.Test[1] = 110;
+
+            MemoryStream stream = new MemoryStream();
+            Message.Serialize(stream, model);
+
+            stream.Position = 0;
+            var model2 = Message<ObjectDictionaryModel>.Deserialize(stream);
+
+            Assert.NotNull(model2.Users);
+            Assert.Equal(model.Users.Count, model2.Users.Count);
+            Assert.Equal(model.Users[2].UserId, model.Users[2].UserId);
+            Assert.Equal(model.Users[2].UserName, model.Users[2].UserName);
+            Assert.Equal(model.Users[1].UserId, model.Users[1].UserId);
+            Assert.Equal(model.Users[1].UserName, model.Users[1].UserName);
+        }
     }
 }

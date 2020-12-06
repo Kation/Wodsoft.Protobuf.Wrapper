@@ -121,7 +121,7 @@ namespace Wodsoft.Protobuf
     /// </summary>
     /// <typeparam name="T">Type of object that need to wrap.</typeparam>
     public abstract class Message<T> : Message
-        where T : class, new()
+        where T : new()
     {
         internal static readonly ConstructorBuilder EmptyConstructor;
         internal static readonly ConstructorBuilder ValueConstructor;
@@ -248,7 +248,7 @@ namespace Wodsoft.Protobuf
         public static implicit operator T(Message<T> message)
         {
             if (message == null)
-                return null;
+                return default(T);
             return message.SourceValue;
         }
     }

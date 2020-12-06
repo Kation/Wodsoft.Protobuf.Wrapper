@@ -18,7 +18,9 @@ namespace Wodsoft.Protobuf.Wrapper.Test
             MessageBuilder.GetMessageType<DictionaryModel>();
             MessageBuilder.GetMessageType<ContentModel>();
             MessageBuilder.GetMessageType<MessageModel>();
-            
+            MessageBuilder.GetMessageType<ObjectCollectionModel>();
+            MessageBuilder.GetMessageType<ObjectDictionaryModel>();
+
             var generator = new Lokad.ILPack.AssemblyGenerator();
             var bytes = generator.GenerateAssemblyBytes(MessageBuilder.GetAssembly());
             File.WriteAllBytes("dynamic.dll", bytes);

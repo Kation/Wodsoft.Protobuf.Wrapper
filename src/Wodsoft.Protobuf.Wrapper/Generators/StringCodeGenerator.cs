@@ -10,10 +10,8 @@ namespace Wodsoft.Protobuf.Generators
     /// <summary>
     /// String code generator.
     /// </summary>
-    public class StringCodeGenerator : PrimitiveCodeGenerator<string>
+    public class StringCodeGenerator : ClassCodeGenerator<string>
     {
-        public override WireFormat.WireType WireType => WireFormat.WireType.LengthDelimited;
-
         public override FieldCodec<string> CreateFieldCodec(int fieldNumber)
         {
             return FieldCodec.ForString(WireFormat.MakeTag(fieldNumber, WireType));
@@ -21,10 +19,17 @@ namespace Wodsoft.Protobuf.Generators
 
         public override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
+            var next = ilGenerator.DefineLabel();
+            var end = ilGenerator.DefineLabel();
+            ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
+            ilGenerator.Emit(OpCodes.Brtrue, next);
+            ilGenerator.Emit(OpCodes.Ldc_I4_0);
+            ilGenerator.Emit(OpCodes.Br, end);
+            ilGenerator.MarkLabel(next);
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
             ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeStringSize), BindingFlags.Static | BindingFlags.Public));
-            ilGenerator.Emit(OpCodes.Ldc_I4_1);
-            ilGenerator.Emit(OpCodes.Add_Ovf);
+            ilGenerator.MarkLabel(end);
+
         }
 
         public override void GenerateReadCode(ILGenerator ilGenerator)

@@ -19,8 +19,6 @@ namespace Wodsoft.Protobuf.Generators
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
             ilGenerator.Emit(OpCodes.Call, typeof(ByteString).GetMethod("CopyFrom", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(byte[]) }, null));
             ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeBytesSize), BindingFlags.Static | BindingFlags.Public));
-            ilGenerator.Emit(OpCodes.Ldc_I4_1);
-            ilGenerator.Emit(OpCodes.Add_Ovf);
         }
 
         public override void GenerateReadCode(ILGenerator ilGenerator)
@@ -35,6 +33,15 @@ namespace Wodsoft.Protobuf.Generators
         protected override int CalculateSize(byte[] value)
         {
             return CodedOutputStream.ComputeBytesSize(ByteString.CopyFrom(value));
+        }
+
+        public override void GenerateWriteCode(ILGenerator ilGenerator, LocalBuilder valueVariable, int fieldNumber)
+        {
+            var end = ilGenerator.DefineLabel();
+            ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
+            ilGenerator.Emit(OpCodes.Brfalse, end);
+            base.GenerateWriteCode(ilGenerator, valueVariable, fieldNumber);
+            ilGenerator.MarkLabel(end);
         }
 
         protected override void GenerateWriteValueCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
