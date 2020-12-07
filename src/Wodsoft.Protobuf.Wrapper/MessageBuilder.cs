@@ -66,7 +66,7 @@ namespace Wodsoft.Protobuf
         /// <typeparam name="T">Object type.</typeparam>
         /// <param name="codeGenerator">Code generator of type <typeparamref name="T"/>.</param>
         public static void SetCodeGenerator<T>(ICodeGenerator<T> codeGenerator)
-            where T : struct
+            where T : new()
         {
             _CodeGenerators[typeof(T)] = codeGenerator ?? throw new ArgumentNullException(nameof(codeGenerator));
         }
