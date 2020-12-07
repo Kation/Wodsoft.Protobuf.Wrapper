@@ -20,6 +20,7 @@ namespace Wodsoft.Protobuf.Wrapper.Test
             MessageBuilder.GetMessageType<MessageModel>();
             MessageBuilder.GetMessageType<ObjectCollectionModel>();
             MessageBuilder.GetMessageType<ObjectDictionaryModel>();
+            MessageBuilder.GetMessageType<PointModel>();
 
             var generator = new Lokad.ILPack.AssemblyGenerator();
             var bytes = generator.GenerateAssemblyBytes(MessageBuilder.GetAssembly());

@@ -74,7 +74,7 @@ namespace Wodsoft.Protobuf
         /// <param name="stream">The stream where bytes write into.</param>
         /// <param name="source">The object that need to be serialized.</param>
         public static void Serialize<T>(Stream stream, T source)
-            where T : class, new()
+            where T : new()
         {
             Message<T>.Serialize(stream, source);
         }
@@ -86,7 +86,7 @@ namespace Wodsoft.Protobuf
         /// <param name="output">The stream where bytes write into.</param>
         /// <param name="source">The object that need to be serialized.</param>
         public static void Serialize<T>(CodedOutputStream output, T source)
-            where T : class, new()
+            where T : new()
         {
             Message<T>.Serialize(output, source);
         }
@@ -98,7 +98,7 @@ namespace Wodsoft.Protobuf
         /// <param name="stream">The stream where contains bytes of serialized object.</param>
         /// <returns>Return deserialized object.</returns>
         public static T Deserialize<T>(Stream stream)
-            where T : class, new()
+            where T : new()
         {
             return Message<T>.Deserialize(stream);
         }
@@ -110,7 +110,7 @@ namespace Wodsoft.Protobuf
         /// <param name="input">The stream where contains data of serialized object.</param>
         /// <returns>Return deserialized object.</returns>
         public static T Deserialize<T>(CodedInputStream input)
-            where T : class, new()
+            where T : new()
         {
             return Message<T>.Deserialize(input);
         }

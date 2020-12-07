@@ -135,17 +135,25 @@ namespace Wodsoft.Protobuf
 
         private static void BuildEmptyConstructor(TypeBuilder typeBuilder, Type baseType, Type wrapType, ConstructorBuilder constructor)
         {
-            var constructorBuilder = (ConstructorBuilder)typeof(Message<>).MakeGenericType(wrapType).GetField("EmptyConstructor", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
+            var constructorBuilder = (ConstructorBuilder)baseType.GetField("EmptyConstructor", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
             var ilGenerator = constructorBuilder.GetILGenerator();
             ilGenerator.Emit(OpCodes.Ldarg_0);
-            ilGenerator.Emit(OpCodes.Newobj, baseType.GetGenericArguments()[0].GetConstructor(Array.Empty<Type>()));
+            if (wrapType.IsValueType)
+            {
+                var valueVariable = ilGenerator.DeclareLocal(wrapType);
+                ilGenerator.Emit(OpCodes.Ldloca_S, valueVariable);
+                ilGenerator.Emit(OpCodes.Initobj, wrapType);
+                ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
+            }
+            else
+                ilGenerator.Emit(OpCodes.Newobj, wrapType.GetConstructor(Array.Empty<Type>()));
             ilGenerator.Emit(OpCodes.Call, constructor);
             ilGenerator.Emit(OpCodes.Ret);
         }
 
         private static ConstructorBuilder BuildConstructor(TypeBuilder typeBuilder, Type baseType, Type objectType, FieldBuilder[] initFields)
         {
-            var constructorBuilder = (ConstructorBuilder)typeof(Message<>).MakeGenericType(objectType).GetField("ValueConstructor", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
+            var constructorBuilder = (ConstructorBuilder)baseType.GetField("ValueConstructor", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
             var ilGenerator = constructorBuilder.GetILGenerator();
             ilGenerator.Emit(OpCodes.Ldarg_0);
             ilGenerator.Emit(OpCodes.Ldarg_1);
@@ -296,7 +304,10 @@ namespace Wodsoft.Protobuf
                 //Write
                 {
                     writeILGenerator.Emit(OpCodes.Ldarg_0);
-                    writeILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
+                    if (sourceFieldInfo.FieldType.IsValueType)
+                        writeILGenerator.Emit(OpCodes.Ldflda, sourceFieldInfo);
+                    else
+                        writeILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
                     writeILGenerator.Emit(OpCodes.Callvirt, property.GetMethod);
                     writeILGenerator.Emit(OpCodes.Stloc, writeValueVariable);
                 }
@@ -381,8 +392,11 @@ namespace Wodsoft.Protobuf
                     }
                     else
                     {
-                        GenerateCheckNull(computeSizeILGenerator, computeSizeValueVariable, computeSizeEnd);
-                        GenerateCheckNull(writeILGenerator, writeValueVariable, writeEnd);
+                        if (!property.PropertyType.IsValueType)
+                        {
+                            GenerateCheckNull(computeSizeILGenerator, computeSizeValueVariable, computeSizeEnd);
+                            GenerateCheckNull(writeILGenerator, writeValueVariable, writeEnd);
+                        }
 
                         bool isCollection = false;
                         bool isDictionary = false;
@@ -693,7 +707,10 @@ namespace Wodsoft.Protobuf
 
                                 codeGenerator.GenerateWriteCode(writeILGenerator, writeValueVariable, index);
                                 readILGenerator.Emit(OpCodes.Ldarg_0);
-                                readILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
+                                if (sourceFieldInfo.FieldType.IsValueType)
+                                    readILGenerator.Emit(OpCodes.Ldflda, sourceFieldInfo);
+                                else
+                                    readILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
                                 codeGenerator.GenerateReadCode(readILGenerator);
                                 readILGenerator.Emit(OpCodes.Callvirt, property.SetMethod);
                             }
@@ -717,7 +734,10 @@ namespace Wodsoft.Protobuf
                     //Read
                     //IL : this.Source.{Property} = parser.Read{xxx}();
                     readILGenerator.Emit(OpCodes.Ldarg_0);
-                    readILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
+                    if (sourceFieldInfo.FieldType.IsValueType)
+                        readILGenerator.Emit(OpCodes.Ldflda, sourceFieldInfo);
+                    else
+                        readILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
                     codeGenerator.GenerateReadCode(readILGenerator);
                     readILGenerator.Emit(OpCodes.Callvirt, property.SetMethod);
                 }

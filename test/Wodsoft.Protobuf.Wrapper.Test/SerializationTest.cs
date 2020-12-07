@@ -294,5 +294,23 @@ namespace Wodsoft.Protobuf.Wrapper.Test
             Assert.Equal(model.Users[1].UserId, model.Users[1].UserId);
             Assert.Equal(model.Users[1].UserName, model.Users[1].UserName);
         }
+
+
+        [Fact]
+        public void Custom_Struct_Test()
+        {
+            PointModel model = new PointModel();
+            model.X = 1.1;
+            model.Y = 34.1;
+
+            MemoryStream stream = new MemoryStream();
+            Message.Serialize(stream, model);
+
+            stream.Position = 0;
+            var model2 = Message<PointModel>.Deserialize(stream);
+
+            Assert.Equal(model.X, model2.X);
+            Assert.Equal(model.Y, model2.Y);
+        }
     }
 }
