@@ -8,6 +8,7 @@
 - [Usage](#Usage)
   - [Serialize](#Serialize)
   - [Deserialize](#Deserialize)
+  - [Field Definition](#Field-Definition)
   - [Field Order](#Field-Order)
   - [Get Protobuf Wrapper](#Get-Protobuf-Wrapper)
 - [Advanced](#Advanced)
@@ -84,6 +85,16 @@ CodedOutputStream output = ...;
 YourType model = Message.Deserialize<YourType>(output);
 ```
 
+### Field Definition
+
+`IMessageFieldProvider.GetFields(Type type)` will return message fields that map from a object type.
+
+The default implementation is `GeneralMessageFieldProvider.Intance`.
+It's only map readable and writeable propertie to message field.
+
+You can create your own `IMessageFieldProvider` to map message fields.
+And set `Message<T>.FieldProvider` to your field provider instance value.
+
 ### Field Order
 
 Use `System.Runtime.Serialization.DataMemberAttribute` for your properties and set the `Order` property to attribute.
@@ -159,9 +170,6 @@ Finally, we create dynamic class inherit `Message<T>` for those models when they
 Emit codes for `Read`, `Write`, `CalculateSize`.
 
 ### Performance
-
-It is nothing at performance cost in general types.
-But there is some performance cost when use some primitives types that Protobuf doesn't support.
 
 - **RECOMMEND USE** `RepeatedField<>`, `IList<>` or `ICollection<>` as collection property type.
 Use `RepeatedField<>` will be the **fastest performance**.

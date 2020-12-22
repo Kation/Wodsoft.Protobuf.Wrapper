@@ -128,6 +128,21 @@ namespace Wodsoft.Protobuf
         internal static Type MessageType;
         internal static readonly TypeBuilder TypeBuilder;
 
+        private static IMessageFieldProvider _FieldProvider = GeneralMessageFieldProvider.Instance;
+        /// <summary>
+        /// Get or set field provider.<br/>
+        /// Value can not be null.
+        /// </summary>
+        /// <exception cref="System.ArgumentNullException">Value can not be null.</exception>
+        public static IMessageFieldProvider FieldProvider
+        {
+            get => _FieldProvider;
+            set
+            {
+                _FieldProvider = value ?? throw new ArgumentNullException(nameof(value));
+            }
+        }
+
         static Message()
         {
             var type = typeof(T);
