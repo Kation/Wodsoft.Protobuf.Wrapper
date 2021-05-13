@@ -29,7 +29,8 @@ namespace Wodsoft.Protobuf.Wrapper.Test
                 UShortValue = 36312,
                 DateTime = new DateTime(2020, 7, 6, 6, 54, 10, DateTimeKind.Utc),
                 DateTimeOffset = new DateTimeOffset(2020, 6, 5, 23, 11, 2, TimeSpan.FromHours(8)),
-                TimeSpan = TimeSpan.FromHours(2.3)
+                TimeSpan = TimeSpan.FromHours(2.3),
+                BytesValue = new byte[] { 1, 2, 3, 4, 5 }
             };
 
             MemoryStream stream = new MemoryStream();
@@ -53,6 +54,7 @@ namespace Wodsoft.Protobuf.Wrapper.Test
             Assert.Equal(model2.DateTime, model.DateTime);
             Assert.Equal(model2.DateTimeOffset, model.DateTimeOffset);
             Assert.Equal(model2.TimeSpan, model.TimeSpan);
+            Assert.Equal(model2.BytesValue, model.BytesValue);
         }
 
         [Fact]

@@ -35,5 +35,7 @@ namespace Wodsoft.Protobuf.Wrapper.Test
         public DateTimeOffset DateTimeOffset { get; set; }
 
         public TimeSpan TimeSpan { get; set; }
+
+        public byte[] BytesValue { get; set; }
     }
 }

@@ -17,7 +17,8 @@ namespace Wodsoft.Protobuf.Generators
         public override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
-            ilGenerator.Emit(OpCodes.Call, typeof(ByteString).GetMethod("CopyFrom", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(byte[]) }, null));
+            ilGenerator.Emit(OpCodes.Newobj, typeof(ReadOnlyMemory<byte>).GetConstructor(new Type[] { typeof(byte[]) }));
+            ilGenerator.Emit(OpCodes.Call, typeof(UnsafeByteOperations).GetMethod("UnsafeWrap", BindingFlags.Public | BindingFlags.Static));
             ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeBytesSize), BindingFlags.Static | BindingFlags.Public));
         }
 
@@ -49,7 +50,8 @@ namespace Wodsoft.Protobuf.Generators
             //Write bool value
             ilGenerator.Emit(OpCodes.Ldarg_1);
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
-            ilGenerator.Emit(OpCodes.Call, typeof(ByteString).GetMethod("CopyFrom", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(byte[]) }, null));
+            ilGenerator.Emit(OpCodes.Newobj, typeof(ReadOnlyMemory<byte>).GetConstructor(new Type[] { typeof(byte[]) }));
+            ilGenerator.Emit(OpCodes.Call, typeof(UnsafeByteOperations).GetMethod("UnsafeWrap", BindingFlags.Public | BindingFlags.Static));
             ilGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod(nameof(WriteContext.WriteBytes)));
         }
 
@@ -60,7 +62,7 @@ namespace Wodsoft.Protobuf.Generators
 
         protected override void WriteValue(ref WriteContext context, byte[] value)
         {
-            context.WriteBytes(ByteString.CopyFrom(value));
+            context.WriteBytes(UnsafeByteOperations.UnsafeWrap(value));
         }
     }
 }
