@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Wodsoft.Protobuf.Generators
@@ -24,9 +25,25 @@ namespace Wodsoft.Protobuf.Generators
 
         public override void GenerateReadCode(ILGenerator ilGenerator)
         {
+            var bytesLocal = ilGenerator.DeclareLocal(typeof(ByteString));
+            var segmentLocal = ilGenerator.DeclareLocal(typeof(ArraySegment<byte>));
+            var hasArrayLabel = ilGenerator.DefineLabel();
+            var endIfLabel = ilGenerator.DefineLabel();
             ilGenerator.Emit(OpCodes.Ldarg_1);
             ilGenerator.Emit(OpCodes.Call, typeof(ParseContext).GetMethod(nameof(ParseContext.ReadBytes)));
+            ilGenerator.Emit(OpCodes.Stloc, bytesLocal);
+            ilGenerator.Emit(OpCodes.Ldloc, bytesLocal);
+            ilGenerator.Emit(OpCodes.Call, typeof(ByteString).GetProperty("Memory").GetMethod);
+            ilGenerator.Emit(OpCodes.Ldloca, segmentLocal);
+            ilGenerator.Emit(OpCodes.Call, typeof(MemoryMarshal).GetMethod("TryGetArray", BindingFlags.Public | BindingFlags.Static).MakeGenericMethod(typeof(byte)));
+            ilGenerator.Emit(OpCodes.Brtrue_S, hasArrayLabel);
+            ilGenerator.Emit(OpCodes.Ldloc, bytesLocal);
             ilGenerator.Emit(OpCodes.Call, typeof(ByteString).GetMethod("ToByteArray"));
+            ilGenerator.Emit(OpCodes.Br_S, endIfLabel);
+            ilGenerator.MarkLabel(hasArrayLabel);
+            ilGenerator.Emit(OpCodes.Ldloca, segmentLocal);
+            ilGenerator.Emit(OpCodes.Call, typeof(ArraySegment<byte>).GetProperty("Array").GetMethod);
+            ilGenerator.MarkLabel(endIfLabel);
         }
 
         protected override byte[] GetDefaultValue() => Array.Empty<byte>();
@@ -57,7 +74,11 @@ namespace Wodsoft.Protobuf.Generators
 
         protected override byte[] ReadValue(ref ParseContext context)
         {
-            return context.ReadBytes().ToByteArray();
+            var bytes = context.ReadBytes();
+            if (MemoryMarshal.TryGetArray(bytes.Memory, out var segment))
+                return segment.Array;
+            else
+                return bytes.ToByteArray();
         }
 
         protected override void WriteValue(ref WriteContext context, byte[] value)

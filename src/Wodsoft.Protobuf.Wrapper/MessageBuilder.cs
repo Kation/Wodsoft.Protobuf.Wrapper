@@ -37,6 +37,7 @@ namespace Wodsoft.Protobuf
             _CodeGenerators[typeof(TimeSpan)] = new TimeSpanCodeGenerator();
             _CodeGenerators[typeof(Guid)] = new GuidCodeGenerator();
             _CodeGenerators[typeof(string)] = new StringCodeGenerator();
+            _CodeGenerators[typeof(byte[])] = new ByteArrayCodeGenerator();
 
             _CodeGenerators[typeof(bool?)] = new NullableCodeGenerator<bool>(new BooleanCodeGenerator());
             _CodeGenerators[typeof(byte?)] = new NullableCodeGenerator<byte>(new ByteCodeGenerator());
