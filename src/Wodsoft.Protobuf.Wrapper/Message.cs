@@ -147,7 +147,7 @@ namespace Wodsoft.Protobuf
         {
             var type = typeof(T);
             TypeBuilder = MessageBuilder.ModuleBuilder.DefineType(
-                type.Namespace + ".Proxy_" + type.Name,
+                type.Namespace + ".Proxy_" + type.Name + "_" + type.GetHashCode(),
                 TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.AutoClass | TypeAttributes.AnsiClass | TypeAttributes.BeforeFieldInit,
                 typeof(Message<T>));
             ValueConstructor = TypeBuilder.DefineConstructor(
