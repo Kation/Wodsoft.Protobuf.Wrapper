@@ -314,5 +314,152 @@ namespace Wodsoft.Protobuf.Wrapper.Test
             Assert.Equal(model.X, model2.X);
             Assert.Equal(model.Y, model2.Y);
         }
+
+        [Fact]
+        public void Primitives_Test()
+        {
+            MemoryStream stream = new MemoryStream();
+            {
+                var value = "test";
+                Message.Serialize(stream, "test");
+                stream.Position = 0;
+                var result = Message<string>.Deserialize(stream);
+                Assert.Equal(value, result);
+            }
+
+            {
+                stream.Position = 0;
+                Message.Serialize(stream, true);
+                stream.Position = 0;
+                var result = Message<bool>.Deserialize(stream);
+                Assert.True(result);
+            }
+
+            {
+                byte value = 155;
+                stream.Position = 0;
+                Message.Serialize(stream, value);
+                stream.Position = 0;
+                var result = Message<byte>.Deserialize(stream);
+                Assert.Equal(value, result);
+            }
+
+            {
+                var value = new DateTime(2021, 1, 1, 0, 0, 0, 0, DateTimeKind.Local);
+                stream.Position = 0;
+                Message.Serialize(stream, value);
+                stream.Position = 0;
+                var result = Message<DateTime>.Deserialize(stream);
+                Assert.Equal(value, result.ToLocalTime());
+            }
+
+            {
+                var value = new DateTimeOffset(2021, 1, 1, 0, 0, 0, TimeSpan.FromHours(8));
+                stream.Position = 0;
+                Message.Serialize(stream, value);
+                stream.Position = 0;
+                var result = Message<DateTimeOffset>.Deserialize(stream);
+                Assert.Equal(value, result);
+            }
+
+            {
+                var value = 3.5d;
+                stream.Position = 0;
+                Message.Serialize(stream, value);
+                stream.Position = 0;
+                var result = Message<double>.Deserialize(stream);
+                Assert.Equal(value, result);
+            }
+
+            {
+                var value = Guid.NewGuid();
+                stream.Position = 0;
+                Message.Serialize(stream, value);
+                stream.Position = 0;
+                var result = Message<Guid>.Deserialize(stream);
+                Assert.Equal(value, result);
+            }
+
+            {
+                short value = 32000;
+                stream.Position = 0;
+                Message.Serialize(stream, value);
+                stream.Position = 0;
+                var result = Message<short>.Deserialize(stream);
+                Assert.Equal(value, result);
+            }
+
+            {
+                int value = 1231245141;
+                stream.Position = 0;
+                Message.Serialize(stream, value);
+                stream.Position = 0;
+                var result = Message<int>.Deserialize(stream);
+                Assert.Equal(value, result);
+            }
+
+            {
+                long value = 123124511231241241;
+                stream.Position = 0;
+                Message.Serialize(stream, value);
+                stream.Position = 0;
+                var result = Message<long>.Deserialize(stream);
+                Assert.Equal(value, result);
+            }
+
+            {
+                sbyte value = -12;
+                stream.Position = 0;
+                Message.Serialize(stream, value);
+                stream.Position = 0;
+                var result = Message<sbyte>.Deserialize(stream);
+                Assert.Equal(value, result);
+            }
+
+            {
+                float value = -123.4f;
+                stream.Position = 0;
+                Message.Serialize(stream, value);
+                stream.Position = 0;
+                var result = Message<float>.Deserialize(stream);
+                Assert.Equal(value, result);
+            }
+
+            {
+                TimeSpan value = TimeSpan.FromSeconds(1234);
+                stream.Position = 0;
+                Message.Serialize(stream, value);
+                stream.Position = 0;
+                var result = Message<TimeSpan>.Deserialize(stream);
+                Assert.Equal(value, result);
+            }
+
+            {
+                ushort value = 52000;
+                stream.Position = 0;
+                Message.Serialize(stream, value);
+                stream.Position = 0;
+                var result = Message<ushort>.Deserialize(stream);
+                Assert.Equal(value, result);
+            }
+
+            {
+                uint value = 4231245141;
+                stream.Position = 0;
+                Message.Serialize(stream, value);
+                stream.Position = 0;
+                var result = Message<uint>.Deserialize(stream);
+                Assert.Equal(value, result);
+            }
+
+            {
+                ulong value = 12321124511231241241;
+                stream.Position = 0;
+                Message.Serialize(stream, value);
+                stream.Position = 0;
+                var result = Message<ulong>.Deserialize(stream);
+                Assert.Equal(value, result);
+            }
+        }
     }
 }

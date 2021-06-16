@@ -6,6 +6,7 @@ using System.IO;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Text;
+using Wodsoft.Protobuf.Primitives;
 
 namespace Wodsoft.Protobuf
 {
@@ -74,7 +75,6 @@ namespace Wodsoft.Protobuf
         /// <param name="stream">The stream where bytes write into.</param>
         /// <param name="source">The object that need to be serialized.</param>
         public static void Serialize<T>(Stream stream, T source)
-            where T : new()
         {
             Message<T>.Serialize(stream, source);
         }
@@ -86,7 +86,6 @@ namespace Wodsoft.Protobuf
         /// <param name="output">The stream where bytes write into.</param>
         /// <param name="source">The object that need to be serialized.</param>
         public static void Serialize<T>(CodedOutputStream output, T source)
-            where T : new()
         {
             Message<T>.Serialize(output, source);
         }
@@ -98,7 +97,6 @@ namespace Wodsoft.Protobuf
         /// <param name="stream">The stream where contains bytes of serialized object.</param>
         /// <returns>Return deserialized object.</returns>
         public static T Deserialize<T>(Stream stream)
-            where T : new()
         {
             return Message<T>.Deserialize(stream);
         }
@@ -110,7 +108,6 @@ namespace Wodsoft.Protobuf
         /// <param name="input">The stream where contains data of serialized object.</param>
         /// <returns>Return deserialized object.</returns>
         public static T Deserialize<T>(CodedInputStream input)
-            where T : new()
         {
             return Message<T>.Deserialize(input);
         }
@@ -121,7 +118,6 @@ namespace Wodsoft.Protobuf
     /// </summary>
     /// <typeparam name="T">Type of object that need to wrap.</typeparam>
     public abstract class Message<T> : Message
-        where T : new()
     {
         internal static readonly ConstructorBuilder EmptyConstructor;
         internal static readonly ConstructorBuilder ValueConstructor;
@@ -165,7 +161,7 @@ namespace Wodsoft.Protobuf
         /// </summary>
         public Message()
         {
-            Source = new T();
+            SourceValue = default(T);
         }
 
         /// <summary>
@@ -246,7 +242,7 @@ namespace Wodsoft.Protobuf
         {
             if (input == null)
                 throw new ArgumentNullException(nameof(input));
-            Message<T> message = (Message<T>)Activator.CreateInstance(MessageBuilder.GetMessageType<T>());
+            Message<T> message = GetMessage();
             input.ReadRawMessage(message);
             return message.Source;
         }
@@ -255,8 +251,7 @@ namespace Wodsoft.Protobuf
         {
             if (source == null)
                 return null;
-            var type = MessageBuilder.GetMessageType<T>();
-            var message = (Message<T>)Activator.CreateInstance(type, source);
+            var message = GetMessage(source);
             return message;
         }
 
@@ -265,6 +260,28 @@ namespace Wodsoft.Protobuf
             if (message == null)
                 return default(T);
             return message.SourceValue;
+        }
+
+        private static Message<T> GetMessage()
+        {
+            var type = typeof(T);
+            if (type == typeof(string))
+                return (Message<T>)(object)new StringMessage();
+            else if (type.IsValueType)
+                return (Message<T>)Activator.CreateInstance(typeof(StructureMessage<>).MakeGenericType(type));
+            else
+                return (Message<T>)Activator.CreateInstance(MessageBuilder.GetMessageType(type));
+        }
+        
+        private static Message<T> GetMessage(T value)
+        {
+            var type = typeof(T);
+            if (type == typeof(string))
+                return (Message<T>)(object)new StringMessage((string)(object)value);
+            else if (type.IsValueType)
+                return (Message<T>)Activator.CreateInstance(typeof(StructureMessage<>).MakeGenericType(type), value);
+            else
+                return (Message<T>)Activator.CreateInstance(MessageBuilder.GetMessageType(type), value);
         }
     }
 }
