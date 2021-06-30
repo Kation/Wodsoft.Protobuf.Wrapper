@@ -37,5 +37,7 @@ namespace Wodsoft.Protobuf.Wrapper.Test
         public TimeSpan TimeSpan { get; set; }
 
         public byte[] BytesValue { get; set; }
+
+        public Guid GuidValue { get; set; }
     }
 }
