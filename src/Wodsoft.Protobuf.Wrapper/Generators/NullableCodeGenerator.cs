@@ -24,17 +24,23 @@ namespace Wodsoft.Protobuf.Generators
             _codeGenerator = codeGenerator ?? throw new ArgumentNullException(nameof(codeGenerator));
         }
 
+        public override WireFormat.WireType WireType => _codeGenerator.WireType;
+
         public override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
             var next = ilGenerator.DefineLabel();
             var end = ilGenerator.DefineLabel();
-            ilGenerator.Emit(OpCodes.Ldloca, valueVariable.LocalIndex);
+            ilGenerator.Emit(OpCodes.Ldloca, valueVariable);
             ilGenerator.Emit(OpCodes.Call, typeof(T?).GetProperty("HasValue").GetMethod);
             ilGenerator.Emit(OpCodes.Brtrue, next);
             ilGenerator.Emit(OpCodes.Ldc_I4_0);
             ilGenerator.Emit(OpCodes.Br, end);
             ilGenerator.MarkLabel(next);
-            _codeGenerator.GenerateCalculateSizeCode(ilGenerator, valueVariable);
+            var innerValue = ilGenerator.DeclareLocal(typeof(T));
+            ilGenerator.Emit(OpCodes.Ldloca, valueVariable);
+            ilGenerator.Emit(OpCodes.Call, typeof(T?).GetProperty("Value").GetMethod);
+            ilGenerator.Emit(OpCodes.Stloc, innerValue);
+            _codeGenerator.GenerateCalculateSizeCode(ilGenerator, innerValue);
             ilGenerator.MarkLabel(end);
         }
 
@@ -47,10 +53,14 @@ namespace Wodsoft.Protobuf.Generators
         public override void GenerateWriteCode(ILGenerator ilGenerator, LocalBuilder valueVariable, int fieldNumber)
         {
             var end = ilGenerator.DefineLabel();
-            ilGenerator.Emit(OpCodes.Ldloca, valueVariable.LocalIndex);
+            ilGenerator.Emit(OpCodes.Ldloca, valueVariable);
             ilGenerator.Emit(OpCodes.Call, typeof(T?).GetProperty("HasValue").GetMethod);
             ilGenerator.Emit(OpCodes.Brfalse, end);
-            _codeGenerator.GenerateWriteCode(ilGenerator, valueVariable, fieldNumber);
+            var innerValue = ilGenerator.DeclareLocal(typeof(T));
+            ilGenerator.Emit(OpCodes.Ldloca, valueVariable);
+            ilGenerator.Emit(OpCodes.Call, typeof(T?).GetProperty("Value").GetMethod);
+            ilGenerator.Emit(OpCodes.Stloc, innerValue);
+            _codeGenerator.GenerateWriteCode(ilGenerator, innerValue, fieldNumber);
             ilGenerator.MarkLabel(end);
         }
 

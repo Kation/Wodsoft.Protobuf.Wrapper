@@ -13,6 +13,7 @@ namespace Wodsoft.Protobuf.Wrapper.Test
         public void Create_Simply_Type_Test()
         {
             MessageBuilder.GetMessageType<SimplyModel>();
+            MessageBuilder.GetMessageType<NullableModel>();
             MessageBuilder.GetMessageType<EnumModel>();
             MessageBuilder.GetMessageType<CollectionModel>();
             MessageBuilder.GetMessageType<DictionaryModel>();
