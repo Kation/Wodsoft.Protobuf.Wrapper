@@ -17,19 +17,10 @@ namespace Wodsoft.Protobuf.Generators
             return FieldCodec.ForString(WireFormat.MakeTag(fieldNumber, WireType));
         }
 
-        public override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
+        protected override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
-            var next = ilGenerator.DefineLabel();
-            var end = ilGenerator.DefineLabel();
-            ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
-            ilGenerator.Emit(OpCodes.Brtrue, next);
-            ilGenerator.Emit(OpCodes.Ldc_I4_0);
-            ilGenerator.Emit(OpCodes.Br, end);
-            ilGenerator.MarkLabel(next);
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
             ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeStringSize), BindingFlags.Static | BindingFlags.Public));
-            ilGenerator.MarkLabel(end);
-
         }
 
         public override void GenerateReadCode(ILGenerator ilGenerator)

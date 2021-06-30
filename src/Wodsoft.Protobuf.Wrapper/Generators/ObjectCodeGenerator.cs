@@ -12,7 +12,7 @@ namespace Wodsoft.Protobuf.Generators
     /// </summary>
     /// <typeparam name="T"></typeparam>
     public class ObjectCodeGenerator<T> : NonstandardPrimitiveCodeGenerator<T>
-        where T : new()
+        where T : class, new()
     {
         private static Func<T, int> _ComputeSizeDelegate;
 
@@ -38,19 +38,35 @@ namespace Wodsoft.Protobuf.Generators
 
         public override WireFormat.WireType WireType => WireFormat.WireType.LengthDelimited;
 
-        public override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
+        public override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable, int fieldNumber)
         {
             var messageType = MessageBuilder.GetMessageType<T>();
             var computeSizeMethod = messageType.GetMethod("ComputeSize", BindingFlags.Public | BindingFlags.Static);
 
-            var lengthVariable = ilGenerator.DeclareLocal(typeof(int));
+            //var lengthVariable = ilGenerator.DeclareLocal(typeof(int));
+
+            var next = ilGenerator.DefineLabel();
+            var end = ilGenerator.DefineLabel();
+            ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
+            ilGenerator.Emit(OpCodes.Brtrue, next);
+            ilGenerator.Emit(OpCodes.Ldc_I4_0);
+            ilGenerator.Emit(OpCodes.Br, end);
+            ilGenerator.MarkLabel(next);
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
             ilGenerator.Emit(OpCodes.Call, computeSizeMethod);
-            ilGenerator.Emit(OpCodes.Stloc, lengthVariable);
-            ilGenerator.Emit(OpCodes.Ldloc, lengthVariable);
-            ilGenerator.Emit(OpCodes.Ldloc, lengthVariable);
+            ilGenerator.Emit(OpCodes.Dup);
+            //ilGenerator.Emit(OpCodes.Stloc, lengthVariable);
+            //ilGenerator.Emit(OpCodes.Ldloc, lengthVariable);
+            //ilGenerator.Emit(OpCodes.Ldloc, lengthVariable);
             ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeLengthSize), BindingFlags.Public | BindingFlags.Static));
             ilGenerator.Emit(OpCodes.Add_Ovf);
+            ilGenerator.Emit(OpCodes.Ldc_I4, CodedOutputStream.ComputeTagSize(fieldNumber));
+            ilGenerator.Emit(OpCodes.Add_Ovf);
+            ilGenerator.MarkLabel(end);
+        }
+
+        protected override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
+        {
         }
 
         public override void GenerateReadCode(ILGenerator ilGenerator)

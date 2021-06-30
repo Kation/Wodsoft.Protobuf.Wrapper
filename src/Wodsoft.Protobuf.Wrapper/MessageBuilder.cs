@@ -366,10 +366,7 @@ namespace Wodsoft.Protobuf
                         //ComputeSize
                         {
                             //IL: size += CodedOutputStream.Compute{type}Size(value);
-                            codeGenerator.GenerateCalculateSizeCode(computeSizeILGenerator, computeSizeValueVariable);
-                            //add tag length
-                            computeSizeILGenerator.Emit(OpCodes.Ldc_I4, CodedOutputStream.ComputeTagSize(field.FieldNumber));
-                            computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
+                            codeGenerator.GenerateCalculateSizeCode(computeSizeILGenerator, computeSizeValueVariable, field.FieldNumber);
                             computeSizeILGenerator.Emit(OpCodes.Ldloc, sizeVariable);
                             computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
                             computeSizeILGenerator.Emit(OpCodes.Stloc, sizeVariable);
@@ -683,9 +680,7 @@ namespace Wodsoft.Protobuf
                             {
                                 codeGenerator = (ICodeGenerator)Activator.CreateInstance(typeof(ObjectCodeGenerator<>).MakeGenericType(field.FieldType));
 
-                                codeGenerator.GenerateCalculateSizeCode(computeSizeILGenerator, computeSizeValueVariable);
-                                computeSizeILGenerator.Emit(OpCodes.Ldc_I4, CodedOutputStream.ComputeTagSize(field.FieldNumber));
-                                computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
+                                codeGenerator.GenerateCalculateSizeCode(computeSizeILGenerator, computeSizeValueVariable, field.FieldNumber);
                                 computeSizeILGenerator.Emit(OpCodes.Ldloc, sizeVariable);
                                 computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
                                 computeSizeILGenerator.Emit(OpCodes.Stloc, sizeVariable);
@@ -705,10 +700,7 @@ namespace Wodsoft.Protobuf
                 else
                 {
                     //ComputeSize
-                    codeGenerator.GenerateCalculateSizeCode(computeSizeILGenerator, computeSizeValueVariable);
-                    //add tag length
-                    computeSizeILGenerator.Emit(OpCodes.Ldc_I4, CodedOutputStream.ComputeTagSize(field.FieldNumber));
-                    computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
+                    codeGenerator.GenerateCalculateSizeCode(computeSizeILGenerator, computeSizeValueVariable, field.FieldNumber);
                     computeSizeILGenerator.Emit(OpCodes.Ldloc, sizeVariable);
                     computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
                     computeSizeILGenerator.Emit(OpCodes.Stloc, sizeVariable);

@@ -14,9 +14,10 @@ namespace Wodsoft.Protobuf.Generators
     {
         public override WireFormat.WireType WireType => WireFormat.WireType.LengthDelimited;
 
-        public override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
+        protected override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
             ilGenerator.Emit(OpCodes.Ldloca, valueVariable);
+            ilGenerator.Emit(OpCodes.Call, typeof(Guid).GetMethod("ToByteArray"));
             ilGenerator.Emit(OpCodes.Call, typeof(ByteString).GetMethod("CopyFrom", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(byte[]) }, null));
             ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeBytesSize), BindingFlags.Static | BindingFlags.Public));
         }

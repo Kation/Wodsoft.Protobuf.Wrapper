@@ -27,11 +27,26 @@ namespace Wodsoft.Protobuf.Generators
 
         /// <summary>
         /// Generate IL code that calculate value's size.<br/>
+        /// Include field length.<br/>
         /// There must be a INT32 value on the top of stack.
         /// </summary>
         /// <param name="ilGenerator">IL generator.</param>
         /// <param name="valueVariable">Local variable of value.</param>
-        public abstract void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable);
+        /// <param name="fieldNumber">Field Number.</param>
+        public virtual void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable, int fieldNumber)
+        {
+            GenerateCalculateSizeCode(ilGenerator, valueVariable);
+            ilGenerator.Emit(OpCodes.Ldc_I4, CodedOutputStream.ComputeTagSize(fieldNumber));
+            ilGenerator.Emit(OpCodes.Add_Ovf);
+        }
+
+        /// <summary>
+        /// Generate IL code that calculate value's size.<br/>
+        /// There must be a INT32 value on the top of stack.
+        /// </summary>
+        /// <param name="ilGenerator">IL generator.</param>
+        /// <param name="valueVariable">Local variable of value.</param>
+        protected abstract void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable);
 
         /// <summary>
         /// Generate IL code that read value use ParseContext.<br/>

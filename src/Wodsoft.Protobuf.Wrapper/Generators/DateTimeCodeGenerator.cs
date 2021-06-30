@@ -14,7 +14,7 @@ namespace Wodsoft.Protobuf.Generators
     {
         public override WireFormat.WireType WireType => WireFormat.WireType.LengthDelimited;
 
-        public override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
+        protected override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
             var next = ilGenerator.DefineLabel();
             ilGenerator.Emit(OpCodes.Ldloca, valueVariable.LocalIndex);

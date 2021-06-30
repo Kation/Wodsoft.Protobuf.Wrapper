@@ -18,11 +18,13 @@ namespace Wodsoft.Protobuf
 
         /// <summary>
         /// Generate IL code that calculate value's size.<br/>
+        /// Include field length.<br/>
         /// There must be a INT32 value on the top of stack.
         /// </summary>
         /// <param name="ilGenerator">IL generator.</param>
         /// <param name="valueVariable">Local variable of value.</param>
-        void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable);
+        /// <param name="fieldNumber">Field Number.</param>
+        void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable, int fieldNumber);
 
         /// <summary>
         /// Generate IL code that write tag and value use WriteContext.<br/>

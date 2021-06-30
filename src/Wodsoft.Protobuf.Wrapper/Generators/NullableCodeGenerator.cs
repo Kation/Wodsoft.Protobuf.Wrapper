@@ -26,7 +26,7 @@ namespace Wodsoft.Protobuf.Generators
 
         public override WireFormat.WireType WireType => _codeGenerator.WireType;
 
-        public override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
+        public override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable, int fieldNumber)
         {
             var next = ilGenerator.DefineLabel();
             var end = ilGenerator.DefineLabel();
@@ -40,8 +40,13 @@ namespace Wodsoft.Protobuf.Generators
             ilGenerator.Emit(OpCodes.Ldloca, valueVariable);
             ilGenerator.Emit(OpCodes.Call, typeof(T?).GetProperty("Value").GetMethod);
             ilGenerator.Emit(OpCodes.Stloc, innerValue);
-            _codeGenerator.GenerateCalculateSizeCode(ilGenerator, innerValue);
+            _codeGenerator.GenerateCalculateSizeCode(ilGenerator, innerValue, fieldNumber);
             ilGenerator.MarkLabel(end);
+        }
+
+        protected override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
+        {
+
         }
 
         public override void GenerateReadCode(ILGenerator ilGenerator)
