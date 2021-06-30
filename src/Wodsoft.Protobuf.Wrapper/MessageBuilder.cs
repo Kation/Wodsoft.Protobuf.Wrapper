@@ -174,6 +174,7 @@ namespace Wodsoft.Protobuf
         private static void BuildMethod(TypeBuilder typeBuilder, Type baseType, Type objectType, IEnumerable<IMessageField> fields, out FieldBuilder[] initFields, out Type[] referenceTypes)
         {
             var computeSizeMethodBuilder = typeBuilder.DefineMethod("ComputeSize", MethodAttributes.Static | MethodAttributes.Public, typeof(int), new Type[] { objectType });
+            typeof(ObjectCodeGenerator<>).MakeGenericType(objectType).GetField("ComputeSize", BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, computeSizeMethodBuilder);
             var computeSizeILGenerator = computeSizeMethodBuilder.GetILGenerator();
             var sizeVariable = computeSizeILGenerator.DeclareLocal(typeof(int));
 

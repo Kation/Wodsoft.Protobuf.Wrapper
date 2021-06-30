@@ -510,5 +510,19 @@ namespace Wodsoft.Protobuf.Wrapper.Test
                 Assert.Equal(value, result);
             }
         }
+
+        [Fact]
+        public void Loop_Test()
+        {
+            //LoopModel model = new LoopModel
+            //{
+            //    Name = "Test",
+            //    Inner = new LoopModel
+            //    {
+            //        Name = "2"
+            //    }
+            //};
+            MessageBuilder.GetMessageType<LoopModel>();
+        }
     }
 }

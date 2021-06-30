@@ -12,36 +12,23 @@ namespace Wodsoft.Protobuf.Generators
     /// </summary>
     /// <typeparam name="T"></typeparam>
     public class ObjectCodeGenerator<T> : NonstandardPrimitiveCodeGenerator<T>
-        where T : class, new()
+        where T : new()
     {
         private static Func<T, int> _ComputeSizeDelegate;
 
-        static ObjectCodeGenerator()
-        {
-            var messageType = MessageBuilder.GetMessageType<T>();
-            var computeSizeMethod = messageType.GetMethod("ComputeSize", BindingFlags.Public | BindingFlags.Static);
-
-            DynamicMethod method = new DynamicMethod("ComputeSize", typeof(int), new Type[] { typeof(T) });
-            var ilGenerator = method.GetILGenerator();
-            var lengthVariable = ilGenerator.DeclareLocal(typeof(int));
-            ilGenerator.Emit(OpCodes.Ldarg_0);
-            ilGenerator.Emit(OpCodes.Call, computeSizeMethod);
-            ilGenerator.Emit(OpCodes.Stloc, lengthVariable);
-            ilGenerator.Emit(OpCodes.Ldloc, lengthVariable);
-            ilGenerator.Emit(OpCodes.Ldloc, lengthVariable);
-            ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeLengthSize), BindingFlags.Public | BindingFlags.Static));
-            ilGenerator.Emit(OpCodes.Add_Ovf);
-            ilGenerator.Emit(OpCodes.Ret);
-
-            _ComputeSizeDelegate = (Func<T, int>)method.CreateDelegate(typeof(Func<T, int>));
-        }
+        internal static MethodInfo ComputeSize;
+        internal static ConstructorInfo EmptyConstructor = Message<T>.EmptyConstructor, WrapConstructor = Message<T>.ValueConstructor;
 
         public override WireFormat.WireType WireType => WireFormat.WireType.LengthDelimited;
 
         public override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable, int fieldNumber)
         {
-            var messageType = MessageBuilder.GetMessageType<T>();
-            var computeSizeMethod = messageType.GetMethod("ComputeSize", BindingFlags.Public | BindingFlags.Static);
+            MethodInfo computeSizeMethod = ComputeSize;
+            if (computeSizeMethod == null)
+            {
+                var messageType = MessageBuilder.GetMessageType<T>();
+                computeSizeMethod = messageType.GetMethod("ComputeSize", BindingFlags.Public | BindingFlags.Static);
+            }
 
             //var lengthVariable = ilGenerator.DeclareLocal(typeof(int));
 
@@ -71,9 +58,15 @@ namespace Wodsoft.Protobuf.Generators
 
         public override void GenerateReadCode(ILGenerator ilGenerator)
         {
-            var messageType = MessageBuilder.GetMessageType<T>();
+            ConstructorInfo constructor = EmptyConstructor;
+            var messageType = typeof(Message<T>);
+            if (constructor == null)
+            {
+                messageType = MessageBuilder.GetMessageType<T>();
+                constructor = messageType.GetConstructor(Array.Empty<Type>());
+            }
             var valueVariable = ilGenerator.DeclareLocal(messageType);
-            ilGenerator.Emit(OpCodes.Newobj, messageType.GetConstructor(Array.Empty<Type>()));
+            ilGenerator.Emit(OpCodes.Newobj, constructor);
             ilGenerator.Emit(OpCodes.Stloc, valueVariable);
             ilGenerator.Emit(OpCodes.Ldarg_1);
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
@@ -84,6 +77,24 @@ namespace Wodsoft.Protobuf.Generators
 
         protected override int CalculateSize(T value)
         {
+            if (_ComputeSizeDelegate == null)
+            {
+                var computeSizeMethod = MessageBuilder.GetMessageType<T>().GetMethod("ComputeSize", BindingFlags.Public | BindingFlags.Static);
+
+                DynamicMethod method = new DynamicMethod("ComputeSize", typeof(int), new Type[] { typeof(T) });
+                var ilGenerator = method.GetILGenerator();
+                var lengthVariable = ilGenerator.DeclareLocal(typeof(int));
+                ilGenerator.Emit(OpCodes.Ldarg_0);
+                ilGenerator.Emit(OpCodes.Call, computeSizeMethod);
+                ilGenerator.Emit(OpCodes.Stloc, lengthVariable);
+                ilGenerator.Emit(OpCodes.Ldloc, lengthVariable);
+                ilGenerator.Emit(OpCodes.Ldloc, lengthVariable);
+                ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeLengthSize), BindingFlags.Public | BindingFlags.Static));
+                ilGenerator.Emit(OpCodes.Add_Ovf);
+                ilGenerator.Emit(OpCodes.Ret);
+
+                _ComputeSizeDelegate = (Func<T, int>)method.CreateDelegate(typeof(Func<T, int>));
+            }
             return _ComputeSizeDelegate(value);
         }
 
@@ -98,10 +109,15 @@ namespace Wodsoft.Protobuf.Generators
 
         protected override void GenerateWriteValueCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
-            var messageType = MessageBuilder.GetMessageType<T>();
+            ConstructorInfo constructor = WrapConstructor;
+            if (constructor == null)
+            {
+                var messageType = MessageBuilder.GetMessageType<T>();
+                constructor = messageType.GetConstructor(new Type[] { typeof(T) });
+            }
             ilGenerator.Emit(OpCodes.Ldarg_1);
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
-            ilGenerator.Emit(OpCodes.Newobj, messageType.GetConstructor(new Type[] { typeof(T) }));
+            ilGenerator.Emit(OpCodes.Newobj, constructor);
             ilGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod(nameof(WriteContext.WriteMessage)));
         }
 
