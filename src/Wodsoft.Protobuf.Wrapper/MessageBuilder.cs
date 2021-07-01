@@ -117,14 +117,17 @@ namespace Wodsoft.Protobuf
             Type[] refTypes = null;
             var wrappedType = _TypeCache.GetOrAdd(type, t =>
             {
-                var baseType = typeof(Message<>).MakeGenericType(type);
+                var baseType = typeof(Message<>).MakeGenericType(t);
                 var typeBuilder = (TypeBuilder)baseType.GetField("TypeBuilder", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
                 var fieldProvider = (IMessageFieldProvider)baseType.GetProperty("FieldProvider").GetValue(null);
                 var properties = fieldProvider.GetFields(t);
-                BuildMethod(typeBuilder, baseType, type, properties, out var initFields, out refTypes);
-                var constructor = BuildConstructor(typeBuilder, baseType, type, initFields);
-                BuildEmptyConstructor(typeBuilder, baseType, type, constructor);
+                BuildMethod(typeBuilder, baseType, t, properties, out var initFields, out refTypes);
+                var constructor = BuildConstructor(typeBuilder, baseType, t, initFields);
+                BuildEmptyConstructor(typeBuilder, baseType, t, constructor);
                 var messageType = typeBuilder.CreateTypeInfo();
+                typeof(ObjectCodeGenerator<>).MakeGenericType(t).GetField("ComputeSize", BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, messageType.GetMethod("ComputeSize"));
+                typeof(ObjectCodeGenerator<>).MakeGenericType(t).GetField("EmptyConstructor", BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, messageType.GetConstructor(Array.Empty<Type>()));
+                typeof(ObjectCodeGenerator<>).MakeGenericType(t).GetField("WrapConstructor", BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, messageType.GetConstructor(new Type[] { t }));
                 typeof(Message<>).MakeGenericType(t).GetField("MessageType", BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, messageType);
                 return messageType.AsType();
             });
