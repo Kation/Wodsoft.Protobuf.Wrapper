@@ -243,7 +243,7 @@ namespace Wodsoft.Protobuf
                     if (field.FieldType.IsGenericType)
                     {
                         var type = field.FieldType.GetGenericTypeDefinition();
-                        if (type == typeof(RepeatedField<>) || type == typeof(IList<>) || type == typeof(ICollection<>) || type == typeof(List<>) || type == typeof(Collection<>))
+                        if (type == typeof(RepeatedField<>) || type == typeof(IList<>) || type == typeof(ICollection<>) || type == typeof(List<>) || type == typeof(Collection<>) || type == typeof(IEnumerable<>))
                         {
                             type = field.FieldType.GetGenericArguments()[0];
                             if (_CodeGenerators.TryGetValue(type, out codeGenerator) && codeGenerator.WireType == WireFormat.WireType.Varint)
@@ -396,7 +396,7 @@ namespace Wodsoft.Protobuf
                         else if (field.FieldType.IsGenericType)
                         {
                             var genericType = field.FieldType.GetGenericTypeDefinition();
-                            if (genericType == typeof(IList<>) || genericType == typeof(List<>) || genericType == typeof(ICollection<>) || genericType == typeof(Collection<>) || genericType == typeof(RepeatedField<>))
+                            if (genericType == typeof(IList<>) || genericType == typeof(List<>) || genericType == typeof(ICollection<>) || genericType == typeof(Collection<>) || genericType == typeof(RepeatedField<>) || genericType == typeof(IEnumerable<>))
                             {
                                 elementType = field.FieldType.GetGenericArguments()[0];
                                 isCollection = true;
@@ -830,15 +830,6 @@ namespace Wodsoft.Protobuf
             where T : IMessage, new()
         {
             return new T();
-        }
-
-        private static void GenerateReadProperty(ILGenerator ilGenerator, LocalBuilder valueVariable, FieldInfo souceField, PropertyInfo property)
-        {
-            //IL: value = source.{Property};
-            ilGenerator.Emit(OpCodes.Ldarg_0);
-            ilGenerator.Emit(OpCodes.Ldfld, souceField);
-            ilGenerator.Emit(OpCodes.Callvirt, property.GetMethod);
-            ilGenerator.Emit(OpCodes.Stloc, valueVariable);
         }
 
         private static void GenerateCheckNull(ILGenerator ilGenerator, LocalBuilder valueVariable, Label end)

@@ -153,6 +153,7 @@ namespace Wodsoft.Protobuf.Wrapper.Test
             model.IntList.Add(10);
             model.IntList.Add(20);
             model.IntList.Add(30);
+            model.IntEnumerable = new int[] { 15, 25, 35 };
             model.NullableIntList = new List<int?>();
             model.NullableIntList.Add(50);
             model.NullableIntList.Add(6);
@@ -186,11 +187,8 @@ namespace Wodsoft.Protobuf.Wrapper.Test
             model.TimeSpanCollection.Add(TimeSpan.FromHours(123));
             model.TimeSpanCollection.Add(TimeSpan.FromHours(42349));
 
-            MemoryStream stream = new MemoryStream();
-            Message.Serialize(stream, model);
-
-            stream.Position = 0;
-            var model2 = Message<CollectionModel>.Deserialize(stream);
+            var data = Message.SerializeToBytes(model);
+            var model2 = Message<CollectionModel>.DeserializeFromBytes(data);
 
             Assert.Equal(model.StringList, model2.StringList);
             Assert.Equal(model.StringList2, model2.StringList2);
@@ -202,6 +200,7 @@ namespace Wodsoft.Protobuf.Wrapper.Test
             Assert.Equal(model.SByteCollection2, model2.SByteCollection2);
             Assert.Equal(model.NullableShortCollection, model2.NullableShortCollection);
             Assert.Equal(model.NullableShortCollection2, model2.NullableShortCollection2);
+            Assert.Equal(model.IntEnumerable, model2.IntEnumerable);
             Assert.Equal<ushort>(model.UShortArray, model2.UShortArray);
             Assert.Equal<ushort?>(model.NullableUShortArray, model2.NullableUShortArray);
             Assert.Equal<long>(model.LongArray, model2.LongArray);

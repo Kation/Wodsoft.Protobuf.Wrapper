@@ -13,6 +13,8 @@ namespace Wodsoft.Protobuf.Wrapper.Test
 
         public IList<int> IntList { get; set; }
 
+        public IEnumerable<int> IntEnumerable { get; set; }
+
         public IList<int?> NullableIntList { get; set; }
 
         public IList<byte> ByteList { get; set; }
