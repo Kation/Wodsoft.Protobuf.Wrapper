@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Security.Cryptography;
 using System.Text;
 using Wodsoft.Protobuf.Primitives;
 
@@ -92,6 +93,19 @@ namespace Wodsoft.Protobuf
         }
 
         /// <summary>
+        /// Serialize object to byte array.
+        /// </summary>
+        /// <typeparam name="T">Type of object.</typeparam>
+        /// <param name="source">The object that need to be serialized.</param>
+        /// <returns></returns>
+        public static byte[] SerializeToBytes<T>(T source)
+        {
+            MemoryStream stream = new MemoryStream();
+            Serialize(stream, source);
+            return stream.ToArray();
+        }
+
+        /// <summary>
         /// Deserialize object from a stream.
         /// </summary>
         /// <typeparam name="T">Type of object.</typeparam>
@@ -111,6 +125,18 @@ namespace Wodsoft.Protobuf
         public static T Deserialize<T>(CodedInputStream input)
         {
             return Message<T>.Deserialize(input);
+        }
+
+        /// <summary>
+        /// Deserialize object from a byte array.
+        /// </summary>
+        /// <typeparam name="T">Type of object.</typeparam>
+        /// <param name="data">Byte array data.</param>
+        /// <returns></returns>
+        public static T DeserializeFromBytes<T>(byte[] data)
+        {
+            CodedInputStream stream = new CodedInputStream(data);
+            return Deserialize<T>(stream);
         }
     }
 
@@ -231,6 +257,18 @@ namespace Wodsoft.Protobuf
         }
 
         /// <summary>
+        /// Serialize object to byte array.
+        /// </summary>
+        /// <param name="source">The object that need to be serialized.</param>
+        /// <returns></returns>
+        public static byte[] SerializeToBytes(T source)
+        {
+            MemoryStream stream = new MemoryStream();
+            Serialize(stream, source);
+            return stream.ToArray();
+        }
+
+        /// <summary>
         /// Deserialize object from a stream.
         /// </summary>
         /// <param name="stream">The stream where contains bytes of serialized object.</param>
@@ -260,6 +298,17 @@ namespace Wodsoft.Protobuf
             Message<T> message = _GetMessageWithoutValue();
             input.ReadRawMessage(message);
             return message.Source;
+        }
+
+        /// <summary>
+        /// Deserialize object from a byte array.
+        /// </summary>
+        /// <param name="data">Byte array data.</param>
+        /// <returns></returns>
+        public static T DeserializeFromBytes(byte[] data)
+        {
+            CodedInputStream stream = new CodedInputStream(data);
+            return Deserialize(stream);
         }
 
         public static implicit operator Message<T>(T source)
