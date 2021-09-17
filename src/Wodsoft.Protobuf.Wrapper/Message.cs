@@ -139,6 +139,18 @@ namespace Wodsoft.Protobuf
             CodedInputStream stream = new CodedInputStream(data);
             return Deserialize<T>(stream);
         }
+
+        /// <summary>
+        /// Create a message wrapper with new value.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public static Message<T> New<T>()
+        {
+            if (Message<T>.MessageType != null)
+                return Message<T>._GetMessageWithoutValue();
+            return MessageBuilder.NewObject<T>();
+        }
     }
 
     /// <summary>
@@ -152,8 +164,8 @@ namespace Wodsoft.Protobuf
         internal static Type MessageType;
         internal static readonly TypeBuilder TypeBuilder;
 
-        private static Func<Message<T>> _GetMessageWithoutValue;
-        private static Func<T, Message<T>> _GetMessageWithValue;
+        internal static Func<Message<T>> _GetMessageWithoutValue;
+        internal static Func<T, Message<T>> _GetMessageWithValue;
 
         private static IMessageFieldProvider _FieldProvider = GeneralMessageFieldProvider.Instance;
         /// <summary>
