@@ -3,6 +3,7 @@ using Google.Protobuf.Reflection;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -178,24 +179,29 @@ namespace Wodsoft.Protobuf
             }
             else
             {
-                TypeBuilder = MessageBuilder.ModuleBuilder.DefineType(
-                    type.Namespace + ".Proxy_" + type.Name + "_" + type.GetHashCode(),
-                    TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.AutoClass | TypeAttributes.AnsiClass | TypeAttributes.BeforeFieldInit,
-                    typeof(Message<T>));
-                ValueConstructor = TypeBuilder.DefineConstructor(
-                    MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName | MethodAttributes.HideBySig,
-                    CallingConventions.Standard | CallingConventions.HasThis,
-                    new Type[] { typeof(T) });
-                EmptyConstructor = TypeBuilder.DefineConstructor(
-                    MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName | MethodAttributes.HideBySig,
-                    CallingConventions.Standard | CallingConventions.HasThis,
-                    Array.Empty<Type>());
-
                 if (type == typeof(string))
                     MessageType = typeof(StringMessage);
                 else if (type.IsValueType && MessageBuilder.GetCodeGenerator<T>() != null)
                     MessageType = typeof(StructureMessage<>).MakeGenericType(type);
-                
+                else if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>))
+                    MessageType = typeof(CollectionMessage<,>).MakeGenericType(type, type.GetGenericArguments()[0]);
+                else if (type.IsArray)
+                    MessageType = typeof(ArrayMessage<>).MakeGenericType(type.GetElementType());
+                else
+                {
+                    TypeBuilder = MessageBuilder.ModuleBuilder.DefineType(
+                        type.Namespace + ".Proxy_" + type.Name + "_" + type.GetHashCode(),
+                        TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.AutoClass | TypeAttributes.AnsiClass | TypeAttributes.BeforeFieldInit,
+                        typeof(Message<T>));
+                    ValueConstructor = TypeBuilder.DefineConstructor(
+                        MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName | MethodAttributes.HideBySig,
+                        CallingConventions.Standard | CallingConventions.HasThis,
+                        new Type[] { typeof(T) });
+                    EmptyConstructor = TypeBuilder.DefineConstructor(
+                        MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName | MethodAttributes.HideBySig,
+                        CallingConventions.Standard | CallingConventions.HasThis,
+                        Array.Empty<Type>());
+                }
             }
         }
 

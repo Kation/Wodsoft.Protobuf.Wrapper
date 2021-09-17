@@ -293,13 +293,27 @@ namespace Wodsoft.Protobuf.Wrapper.Test
             };
 
             MemoryStream stream = new MemoryStream();
-            Message.Serialize(stream, model);
+            {
+                Message.Serialize(stream, model);
 
-            stream.Position = 0;
-            var model2 = Message<ProtobufModel>.Deserialize(stream);
+                stream.Position = 0;
+                var model2 = Message<ProtobufModel>.Deserialize(stream);
 
-            Assert.Equal(model.IntValue, model2.IntValue);
-            Assert.Equal(model.StringValue, model2.StringValue);
+                Assert.Equal(model.IntValue, model2.IntValue);
+                Assert.Equal(model.StringValue, model2.StringValue);
+            }
+
+            {
+                var message = (Message<ProtobufModel>)model;
+                stream.Position = 0;
+                Message.Serialize(stream, model);
+
+                stream.Position = 0;
+                var model2 = Message<ProtobufModel>.Deserialize(stream);
+
+                Assert.Equal(model.IntValue, model2.IntValue);
+                Assert.Equal(model.StringValue, model2.StringValue);
+            }
         }
 
 
@@ -527,6 +541,82 @@ namespace Wodsoft.Protobuf.Wrapper.Test
                 stream.Position = 0;
                 var result = Message<ulong>.Deserialize(stream);
                 Assert.Equal(value, result);
+            }
+        }
+
+        [Fact]
+        public void Primitives_Collection_Test()
+        {
+            {
+                MemoryStream stream = new MemoryStream();
+                List<string> list = new List<string>
+                {
+                    "A","B","C"
+                };
+                Message.Serialize(stream, list);
+                stream.Position = 0;
+                var result = Message<List<string>>.Deserialize(stream);
+                Assert.Equal(list, result);
+            }
+            {
+                MemoryStream stream = new MemoryStream();
+                List<int> list = new List<int>
+                {
+                    3,1345,34534
+                };
+                Message.Serialize(stream, list);
+                stream.Position = 0;
+                var result = Message<List<int>>.Deserialize(stream);
+                Assert.Equal(list, result);
+            }
+            {
+                MemoryStream stream = new MemoryStream();
+                List<double> list = new List<double>
+                {
+                    1.2,3453412.123,564212.233
+                };
+                Message.Serialize(stream, list);
+                stream.Position = 0;
+                var result = Message<List<double>>.Deserialize(stream);
+                Assert.Equal(list, result);
+            }
+        }
+
+        [Fact]
+        public void Primitives_Array_Test()
+        {
+            {
+                MemoryStream stream = new MemoryStream();
+                string[] list = new string[]
+                {
+                    "A","B","C"
+                };
+                Message.Serialize(stream, list);
+                stream.Position = 0;
+                var result = Message<string[]>.Deserialize(stream);
+                Assert.Equal(list, result);
+            }
+            {
+                MemoryStream stream = new MemoryStream();
+                int[] list = new int[]
+                {
+                    3,1345,34534
+                };
+                Message.Serialize(stream, list);
+                stream.Position = 0;
+                var result = Message<int[]>.Deserialize(stream);
+                Assert.Equal(list, result);
+            }
+            {
+                MemoryStream stream = new MemoryStream();
+                double[] list = new double[]
+                {
+                    1.2,3453412.123,564212.233
+                };
+                Message.Serialize(stream, list);
+                stream.Position = 0;
+                var result = Message<double[]>.Deserialize(stream);
+                Assert.Equal(list, result);
             }
         }
 
