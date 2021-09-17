@@ -12,23 +12,27 @@ namespace Wodsoft.Protobuf.Generators
     /// </summary>
     public class ByteStringCodeGenerator : ClassCodeGenerator<ByteString>
     {
+        /// <inheritdoc/>
         public override FieldCodec<ByteString> CreateFieldCodec(int fieldNumber)
         {
             return FieldCodec.ForBytes(WireFormat.MakeTag(fieldNumber, WireType));
         }
 
+        /// <inheritdoc/>
         protected override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
             ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeBytesSize), BindingFlags.Static | BindingFlags.Public));
         }
 
+        /// <inheritdoc/>
         public override void GenerateReadCode(ILGenerator ilGenerator)
         {
             ilGenerator.Emit(OpCodes.Ldarg_1);
             ilGenerator.Emit(OpCodes.Call, typeof(ParseContext).GetMethod(nameof(ParseContext.ReadBytes)));
         }
 
+        /// <inheritdoc/>
         protected override void GenerateWriteValueCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
             //Write bool value

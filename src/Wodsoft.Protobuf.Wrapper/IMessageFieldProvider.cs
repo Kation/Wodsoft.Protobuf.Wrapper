@@ -5,7 +5,7 @@ using System.Text;
 namespace Wodsoft.Protobuf
 {
     /// <summary>
-    /// Protobuf message field provider.
+    /// Protobuf message field provider.<br/>
     /// Get message fields definition of .NET types.
     /// </summary>
     public interface IMessageFieldProvider

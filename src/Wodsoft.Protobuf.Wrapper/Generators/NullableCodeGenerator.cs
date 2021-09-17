@@ -24,8 +24,10 @@ namespace Wodsoft.Protobuf.Generators
             _codeGenerator = codeGenerator ?? throw new ArgumentNullException(nameof(codeGenerator));
         }
 
+        /// <inheritdoc/>
         public override WireFormat.WireType WireType => _codeGenerator.WireType;
 
+        /// <inheritdoc/>
         public override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable, int fieldNumber)
         {
             var next = ilGenerator.DefineLabel();
@@ -44,17 +46,20 @@ namespace Wodsoft.Protobuf.Generators
             ilGenerator.MarkLabel(end);
         }
 
+        /// <inheritdoc/>
         protected override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
 
         }
 
+        /// <inheritdoc/>
         public override void GenerateReadCode(ILGenerator ilGenerator)
         {
             _codeGenerator.GenerateReadCode(ilGenerator);
             ilGenerator.Emit(OpCodes.Newobj, typeof(T?).GetConstructor(new Type[] { typeof(T) }));
         }
 
+        /// <inheritdoc/>
         public override void GenerateWriteCode(ILGenerator ilGenerator, LocalBuilder valueVariable, int fieldNumber)
         {
             var end = ilGenerator.DefineLabel();
@@ -69,6 +74,7 @@ namespace Wodsoft.Protobuf.Generators
             ilGenerator.MarkLabel(end);
         }
 
+        /// <inheritdoc/>
         protected override int CalculateSize(T? value)
         {
             if (value.HasValue)
@@ -77,16 +83,19 @@ namespace Wodsoft.Protobuf.Generators
                 return 0;
         }
 
+        /// <inheritdoc/>
         protected override void GenerateWriteValueCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
 
         }
 
+        /// <inheritdoc/>
         protected override T? ReadValue(ref ParseContext parser)
         {
             return _codeGenerator.ReadValue(ref parser);
         }
 
+        /// <inheritdoc/>
         protected override void WriteValue(ref WriteContext writer, T? value)
         {
             if (value.HasValue)

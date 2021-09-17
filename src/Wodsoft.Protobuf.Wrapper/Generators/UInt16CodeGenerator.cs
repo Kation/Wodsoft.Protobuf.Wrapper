@@ -12,13 +12,14 @@ namespace Wodsoft.Protobuf.Generators
     /// </summary>
     public class UInt16CodeGenerator : NonstandardStructureCodeGenerator<ushort>
     {
-
+        /// <inheritdoc/>
         protected override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
             ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeInt32Size), BindingFlags.Static | BindingFlags.Public));
         }
 
+        /// <inheritdoc/>
         public override void GenerateReadCode(ILGenerator ilGenerator)
         {
             ilGenerator.Emit(OpCodes.Ldarg_1);
@@ -26,11 +27,13 @@ namespace Wodsoft.Protobuf.Generators
             ilGenerator.Emit(OpCodes.Conv_U2);
         }
 
+        /// <inheritdoc/>
         protected override int CalculateSize(ushort value)
         {
             return CodedOutputStream.ComputeInt32Size(value);
         }
 
+        /// <inheritdoc/>
         protected override void GenerateWriteValueCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
             //Write bool value
@@ -39,11 +42,13 @@ namespace Wodsoft.Protobuf.Generators
             ilGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod(nameof(WriteContext.WriteInt32)));
         }
 
+        /// <inheritdoc/>
         protected override ushort ReadValue(ref ParseContext context)
         {
             return (ushort)context.ReadInt32();
         }
 
+        /// <inheritdoc/>
         protected override void WriteValue(ref WriteContext context, ushort value)
         {
             context.WriteInt32(value);

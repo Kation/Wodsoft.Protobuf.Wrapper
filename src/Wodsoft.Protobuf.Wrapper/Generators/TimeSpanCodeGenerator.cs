@@ -12,8 +12,10 @@ namespace Wodsoft.Protobuf.Generators
     /// </summary>
     public class TimeSpanCodeGenerator : NonstandardStructureCodeGenerator<TimeSpan>
     {
+        /// <inheritdoc/>
         public override WireFormat.WireType WireType => WireFormat.WireType.LengthDelimited;
 
+        /// <inheritdoc/>
         protected override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
@@ -21,6 +23,7 @@ namespace Wodsoft.Protobuf.Generators
             ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeMessageSize), BindingFlags.Static | BindingFlags.Public));
         }
 
+        /// <inheritdoc/>
         public override void GenerateReadCode(ILGenerator ilGenerator)
         {
             var value = ilGenerator.DeclareLocal(typeof(Google.Protobuf.WellKnownTypes.Duration));
@@ -33,11 +36,13 @@ namespace Wodsoft.Protobuf.Generators
             ilGenerator.Emit(OpCodes.Call, typeof(Google.Protobuf.WellKnownTypes.Duration).GetMethod("ToTimeSpan"));
         }
 
+        /// <inheritdoc/>
         protected override int CalculateSize(TimeSpan value)
         {            
             return CodedOutputStream.ComputeMessageSize(Google.Protobuf.WellKnownTypes.Duration.FromTimeSpan(value));
         }
 
+        /// <inheritdoc/>
         protected override void GenerateWriteValueCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
             //Write DateTime value
@@ -47,6 +52,7 @@ namespace Wodsoft.Protobuf.Generators
             ilGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod(nameof(WriteContext.WriteMessage)));
         }
 
+        /// <inheritdoc/>
         protected override TimeSpan ReadValue(ref ParseContext context)
         {
             var duration = new Google.Protobuf.WellKnownTypes.Duration();
@@ -54,6 +60,7 @@ namespace Wodsoft.Protobuf.Generators
             return duration.ToTimeSpan();
         }
 
+        /// <inheritdoc/>
         protected override void WriteValue(ref WriteContext context, TimeSpan value)
         {
             context.WriteMessage(Google.Protobuf.WellKnownTypes.Duration.FromTimeSpan(value));

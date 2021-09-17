@@ -24,17 +24,22 @@ namespace Wodsoft.Protobuf
             _fieldInfo = fieldInfo ?? throw new ArgumentNullException(nameof(fieldNumber));
         }
 
+        /// <inheritdoc/>
         public int FieldNumber { get; }
 
+        /// <inheritdoc/>
         public Type FieldType => _fieldInfo.FieldType;
 
+        /// <inheritdoc/>
         public string FieldName => _fieldInfo.Name;
 
+        /// <inheritdoc/>
         public void GenerateReadFieldCode(ILGenerator ilGenerator)
         {
             ilGenerator.Emit(OpCodes.Ldfld, _fieldInfo);
         }
 
+        /// <inheritdoc/>
         public void GenerateWriteFieldCode(ILGenerator ilGenerator)
         {
             ilGenerator.Emit(OpCodes.Stfld, _fieldInfo);

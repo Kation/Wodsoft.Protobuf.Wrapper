@@ -6,11 +6,17 @@ using System.Text;
 
 namespace Wodsoft.Protobuf.Generators
 {
+    /// <summary>
+    /// Class object code generator.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public abstract class ClassCodeGenerator<T> : PrimitiveCodeGenerator<T>
         where T : class
     {
+        /// <inheritdoc/>
         public override WireFormat.WireType WireType => WireFormat.WireType.LengthDelimited;
 
+        /// <inheritdoc/>
         public override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable, int fieldNumber)
         {
             var end = ilGenerator.DefineLabel();
@@ -26,6 +32,7 @@ namespace Wodsoft.Protobuf.Generators
             ilGenerator.MarkLabel(end);
         }
 
+        /// <inheritdoc/>
         public override void GenerateWriteCode(ILGenerator ilGenerator, LocalBuilder valueVariable, int fieldNumber)
         {
             var end = ilGenerator.DefineLabel();

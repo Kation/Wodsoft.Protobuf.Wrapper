@@ -12,8 +12,10 @@ namespace Wodsoft.Protobuf.Generators
     /// </summary>
     public class DateTimeCodeGenerator : NonstandardStructureCodeGenerator<DateTime>
     {
+        /// <inheritdoc/>
         public override WireFormat.WireType WireType => WireFormat.WireType.LengthDelimited;
 
+        /// <inheritdoc/>
         protected override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
             var next = ilGenerator.DefineLabel();
@@ -30,6 +32,7 @@ namespace Wodsoft.Protobuf.Generators
             ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeMessageSize), BindingFlags.Static | BindingFlags.Public));
         }
 
+        /// <inheritdoc/>
         public override void GenerateReadCode(ILGenerator ilGenerator)
         {
             var value = ilGenerator.DeclareLocal(typeof(Google.Protobuf.WellKnownTypes.Timestamp));
@@ -42,6 +45,7 @@ namespace Wodsoft.Protobuf.Generators
             ilGenerator.Emit(OpCodes.Call, typeof(Google.Protobuf.WellKnownTypes.Timestamp).GetMethod("ToDateTime"));
         }
 
+        /// <inheritdoc/>
         protected override int CalculateSize(DateTime value)
         {
             if (value.Kind != DateTimeKind.Utc)
@@ -49,6 +53,7 @@ namespace Wodsoft.Protobuf.Generators
             return CodedOutputStream.ComputeMessageSize(Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(value));
         }
 
+        /// <inheritdoc/>
         protected override void GenerateWriteValueCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
             //Write DateTime value
@@ -67,6 +72,7 @@ namespace Wodsoft.Protobuf.Generators
             ilGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod(nameof(WriteContext.WriteMessage)));
         }
 
+        /// <inheritdoc/>
         protected override DateTime ReadValue(ref ParseContext context)
         {
             var timestamp = new Google.Protobuf.WellKnownTypes.Timestamp();
@@ -74,6 +80,7 @@ namespace Wodsoft.Protobuf.Generators
             return timestamp.ToDateTime();
         }
 
+        /// <inheritdoc/>
         protected override void WriteValue(ref WriteContext context, DateTime value)
         {
             if (value.Kind != DateTimeKind.Utc)

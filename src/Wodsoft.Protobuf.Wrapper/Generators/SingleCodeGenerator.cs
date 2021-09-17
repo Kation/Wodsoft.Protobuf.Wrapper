@@ -12,38 +12,45 @@ namespace Wodsoft.Protobuf.Generators
     /// </summary>
     public class SingleCodeGenerator : StructureCodeGenerator<float>
     {
+        /// <inheritdoc/>
         public override int CalculateSize(float value)
         {
             return CodedOutputStream.ComputeFloatSize(value);
         }
 
+        /// <inheritdoc/>
         public override FieldCodec<float> CreateFieldCodec(int fieldNumber)
         {
             return FieldCodec.ForFloat(WireFormat.MakeTag(fieldNumber, WireType));
         }
 
+        /// <inheritdoc/>
         protected override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
             ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeFloatSize), BindingFlags.Static | BindingFlags.Public));
         }
 
+        /// <inheritdoc/>
         public override void GenerateReadCode(ILGenerator ilGenerator)
         {
             ilGenerator.Emit(OpCodes.Ldarg_1);
             ilGenerator.Emit(OpCodes.Call, typeof(ParseContext).GetMethod(nameof(ParseContext.ReadFloat)));
         }
 
+        /// <inheritdoc/>
         public override float ReadValue(ref ParseContext parser)
         {
             return parser.ReadFloat();
         }
 
+        /// <inheritdoc/>
         public override void WriteValue(ref WriteContext writer, float value)
         {
             writer.WriteFloat(value);
         }
 
+        /// <inheritdoc/>
         protected override void GenerateWriteValueCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
             //Write bool value

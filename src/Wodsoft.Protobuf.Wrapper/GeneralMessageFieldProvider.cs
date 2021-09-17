@@ -7,10 +7,18 @@ using System.Text;
 
 namespace Wodsoft.Protobuf
 {
+    /// <summary>
+    /// Protobuf message field provider.<br/>
+    /// Get message fields definition of .NET types.
+    /// </summary>
     public class GeneralMessageFieldProvider : IMessageFieldProvider
     {
+        /// <summary>
+        /// Get instance of <see cref="GeneralMessageFieldProvider">GeneralMessageFieldProvider</see>.
+        /// </summary>
         public readonly static GeneralMessageFieldProvider Instance = new GeneralMessageFieldProvider();
 
+        /// <inheritdoc/>
         public IEnumerable<IMessageField> GetFields(Type type)
         {
             var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(t => t.CanWrite && t.CanRead).OrderBy(t => t.Name) .ToArray();

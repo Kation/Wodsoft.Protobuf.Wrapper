@@ -13,12 +13,14 @@ namespace Wodsoft.Protobuf.Generators
     public class SByteCodeGenerator : NonstandardStructureCodeGenerator<sbyte>
     {
 
+        /// <inheritdoc/>
         protected override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
             ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeInt32Size), BindingFlags.Static | BindingFlags.Public));
         }
 
+        /// <inheritdoc/>
         public override void GenerateReadCode(ILGenerator ilGenerator)
         {
             ilGenerator.Emit(OpCodes.Ldarg_1);
@@ -26,11 +28,13 @@ namespace Wodsoft.Protobuf.Generators
             ilGenerator.Emit(OpCodes.Conv_I1);
         }
 
+        /// <inheritdoc/>
         protected override int CalculateSize(sbyte value)
         {
             return CodedOutputStream.ComputeInt32Size(value);
         }
 
+        /// <inheritdoc/>
         protected override void GenerateWriteValueCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
             //Write bool value
@@ -39,11 +43,13 @@ namespace Wodsoft.Protobuf.Generators
             ilGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod(nameof(WriteContext.WriteInt32)));
         }
 
+        /// <inheritdoc/>
         protected override sbyte ReadValue(ref ParseContext context)
         {
             return (sbyte)context.ReadInt32();
         }
 
+        /// <inheritdoc/>
         protected override void WriteValue(ref WriteContext context, sbyte value)
         {
             context.WriteInt32(value);

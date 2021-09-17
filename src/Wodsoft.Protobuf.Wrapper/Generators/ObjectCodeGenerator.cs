@@ -16,11 +16,16 @@ namespace Wodsoft.Protobuf.Generators
     {
         private static Func<T, int> _ComputeSizeDelegate;
 
+        //Reflection used
+#pragma warning disable CS0649
         internal static MethodInfo ComputeSize;
+#pragma warning restore CS0649
         internal static ConstructorInfo EmptyConstructor = Message<T>.EmptyConstructor, WrapConstructor = Message<T>.ValueConstructor;
 
+        /// <inheritdoc/>
         public override WireFormat.WireType WireType => WireFormat.WireType.LengthDelimited;
 
+        /// <inheritdoc/>
         public override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable, int fieldNumber)
         {
             MethodInfo computeSizeMethod = ComputeSize;
@@ -52,10 +57,12 @@ namespace Wodsoft.Protobuf.Generators
             ilGenerator.MarkLabel(end);
         }
 
+        /// <inheritdoc/>
         protected override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
         }
 
+        /// <inheritdoc/>
         public override void GenerateReadCode(ILGenerator ilGenerator)
         {
             ConstructorInfo constructor = EmptyConstructor;
@@ -75,6 +82,7 @@ namespace Wodsoft.Protobuf.Generators
             ilGenerator.Emit(OpCodes.Call, messageType.GetProperty("Source").GetMethod);
         }
 
+        /// <inheritdoc/>
         protected override int CalculateSize(T value)
         {
             if (_ComputeSizeDelegate == null)
@@ -107,6 +115,7 @@ namespace Wodsoft.Protobuf.Generators
         //    ilGenerator.MarkLabel(end);
         //}
 
+        /// <inheritdoc/>
         protected override void GenerateWriteValueCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
             ConstructorInfo constructor = WrapConstructor;
@@ -121,6 +130,7 @@ namespace Wodsoft.Protobuf.Generators
             ilGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod(nameof(WriteContext.WriteMessage)));
         }
 
+        /// <inheritdoc/>
         protected override T ReadValue(ref ParseContext parser)
         {
             Message<T> message = (Message<T>)Activator.CreateInstance(MessageBuilder.GetMessageType<T>());
@@ -128,6 +138,7 @@ namespace Wodsoft.Protobuf.Generators
             return message.Source;
         }
 
+        /// <inheritdoc/>
         protected override void WriteValue(ref WriteContext writer, T value)
         {
             Message<T> message = value;

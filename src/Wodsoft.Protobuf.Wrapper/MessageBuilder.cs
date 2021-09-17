@@ -14,6 +14,9 @@ using Wodsoft.Protobuf.Generators;
 
 namespace Wodsoft.Protobuf
 {
+    /// <summary>
+    /// Message wrapper type builder.
+    /// </summary>
     public class MessageBuilder
     {
         static MessageBuilder()
@@ -118,17 +121,17 @@ namespace Wodsoft.Protobuf
             var wrappedType = _TypeCache.GetOrAdd(type, t =>
             {
                 var baseType = typeof(Message<>).MakeGenericType(t);
-                var typeBuilder = (TypeBuilder)baseType.GetField("TypeBuilder", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
-                var fieldProvider = (IMessageFieldProvider)baseType.GetProperty("FieldProvider").GetValue(null);
+                var typeBuilder = (TypeBuilder)baseType.GetField(nameof(Message<object>.TypeBuilder), BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
+                var fieldProvider = (IMessageFieldProvider)baseType.GetProperty(nameof(Message<object>.FieldProvider)).GetValue(null);
                 var properties = fieldProvider.GetFields(t);
                 BuildMethod(typeBuilder, baseType, t, properties, out var initFields, out refTypes);
                 var constructor = BuildConstructor(typeBuilder, baseType, t, initFields);
                 BuildEmptyConstructor(typeBuilder, baseType, t, constructor);
                 var messageType = typeBuilder.CreateTypeInfo();
-                typeof(ObjectCodeGenerator<>).MakeGenericType(t).GetField("ComputeSize", BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, messageType.GetMethod("ComputeSize"));
-                typeof(ObjectCodeGenerator<>).MakeGenericType(t).GetField("EmptyConstructor", BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, messageType.GetConstructor(Array.Empty<Type>()));
-                typeof(ObjectCodeGenerator<>).MakeGenericType(t).GetField("WrapConstructor", BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, messageType.GetConstructor(new Type[] { t }));
-                typeof(Message<>).MakeGenericType(t).GetField("MessageType", BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, messageType);
+                typeof(ObjectCodeGenerator<>).MakeGenericType(t).GetField(nameof(ObjectCodeGenerator<object>.ComputeSize), BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, messageType.GetMethod("ComputeSize"));
+                typeof(ObjectCodeGenerator<>).MakeGenericType(t).GetField(nameof(ObjectCodeGenerator<object>.EmptyConstructor), BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, messageType.GetConstructor(Array.Empty<Type>()));
+                typeof(ObjectCodeGenerator<>).MakeGenericType(t).GetField(nameof(ObjectCodeGenerator<object>.WrapConstructor), BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, messageType.GetConstructor(new Type[] { t }));
+                typeof(Message<>).MakeGenericType(t).GetField(nameof(Message<object>.MessageType), BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, messageType);
                 return messageType.AsType();
             });
             if (refTypes != null)
@@ -140,7 +143,7 @@ namespace Wodsoft.Protobuf
 
         private static void BuildEmptyConstructor(TypeBuilder typeBuilder, Type baseType, Type wrapType, ConstructorBuilder constructor)
         {
-            var constructorBuilder = (ConstructorBuilder)baseType.GetField("EmptyConstructor", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
+            var constructorBuilder = (ConstructorBuilder)baseType.GetField(nameof(Message<object>.EmptyConstructor), BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
             var ilGenerator = constructorBuilder.GetILGenerator();
             ilGenerator.Emit(OpCodes.Ldarg_0);
             if (wrapType.IsValueType)
@@ -158,7 +161,7 @@ namespace Wodsoft.Protobuf
 
         private static ConstructorBuilder BuildConstructor(TypeBuilder typeBuilder, Type baseType, Type objectType, FieldBuilder[] initFields)
         {
-            var constructorBuilder = (ConstructorBuilder)baseType.GetField("ValueConstructor", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
+            var constructorBuilder = (ConstructorBuilder)baseType.GetField(nameof(Message<object>.ValueConstructor), BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
             var ilGenerator = constructorBuilder.GetILGenerator();
             ilGenerator.Emit(OpCodes.Ldarg_0);
             ilGenerator.Emit(OpCodes.Ldarg_1);
@@ -177,7 +180,7 @@ namespace Wodsoft.Protobuf
         private static void BuildMethod(TypeBuilder typeBuilder, Type baseType, Type objectType, IEnumerable<IMessageField> fields, out FieldBuilder[] initFields, out Type[] referenceTypes)
         {
             var computeSizeMethodBuilder = typeBuilder.DefineMethod("ComputeSize", MethodAttributes.Static | MethodAttributes.Public, typeof(int), new Type[] { objectType });
-            typeof(ObjectCodeGenerator<>).MakeGenericType(objectType).GetField("ComputeSize", BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, computeSizeMethodBuilder);
+            typeof(ObjectCodeGenerator<>).MakeGenericType(objectType).GetField(nameof(ObjectCodeGenerator<object>.ComputeSize), BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, computeSizeMethodBuilder);
             var computeSizeILGenerator = computeSizeMethodBuilder.GetILGenerator();
             var sizeVariable = computeSizeILGenerator.DeclareLocal(typeof(int));
 

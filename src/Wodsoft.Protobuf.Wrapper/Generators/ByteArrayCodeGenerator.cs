@@ -13,8 +13,10 @@ namespace Wodsoft.Protobuf.Generators
     /// </summary>
     public class ByteArrayCodeGenerator : NonstandardPrimitiveCodeGenerator<byte[]>
     {
+        /// <inheritdoc/>
         public override WireFormat.WireType WireType => WireFormat.WireType.LengthDelimited;
 
+        /// <inheritdoc/>
         protected override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
@@ -23,6 +25,7 @@ namespace Wodsoft.Protobuf.Generators
             ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeBytesSize), BindingFlags.Static | BindingFlags.Public));
         }
 
+        /// <inheritdoc/>
         public override void GenerateReadCode(ILGenerator ilGenerator)
         {
             var bytesLocal = ilGenerator.DeclareLocal(typeof(ByteString));
@@ -46,13 +49,16 @@ namespace Wodsoft.Protobuf.Generators
             ilGenerator.MarkLabel(endIfLabel);
         }
 
+        /// <inheritdoc/>
         protected override byte[] GetDefaultValue() => Array.Empty<byte>();
 
+        /// <inheritdoc/>
         protected override int CalculateSize(byte[] value)
         {
             return CodedOutputStream.ComputeBytesSize(ByteString.CopyFrom(value));
         }
 
+        /// <inheritdoc/>
         public override void GenerateWriteCode(ILGenerator ilGenerator, LocalBuilder valueVariable, int fieldNumber)
         {
             var end = ilGenerator.DefineLabel();
@@ -62,6 +68,7 @@ namespace Wodsoft.Protobuf.Generators
             ilGenerator.MarkLabel(end);
         }
 
+        /// <inheritdoc/>
         protected override void GenerateWriteValueCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
             //Write bool value
@@ -72,6 +79,7 @@ namespace Wodsoft.Protobuf.Generators
             ilGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod(nameof(WriteContext.WriteBytes)));
         }
 
+        /// <inheritdoc/>
         protected override byte[] ReadValue(ref ParseContext context)
         {
             var bytes = context.ReadBytes();
@@ -81,6 +89,7 @@ namespace Wodsoft.Protobuf.Generators
                 return bytes.ToByteArray();
         }
 
+        /// <inheritdoc/>
         protected override void WriteValue(ref WriteContext context, byte[] value)
         {
             context.WriteBytes(UnsafeByteOperations.UnsafeWrap(value));

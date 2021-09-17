@@ -311,6 +311,11 @@ namespace Wodsoft.Protobuf
             return Deserialize(stream);
         }
 
+        /// <summary>
+        /// Convert a value into Protobuf IMessage wrapper type implicit.<br/>
+        /// A null will be return if the source value is null.
+        /// </summary>
+        /// <param name="source">Source value.</param>
         public static implicit operator Message<T>(T source)
         {
             if (source == null)
@@ -326,6 +331,11 @@ namespace Wodsoft.Protobuf
             return message;
         }
 
+        /// <summary>
+        /// Convert a Protobuf IMessage wrapper type back to its source type implicit.<br/>
+        /// A default value will be return if the message is null.
+        /// </summary>
+        /// <param name="message"></param>
         public static implicit operator T(Message<T> message)
         {
             if (message == null)
