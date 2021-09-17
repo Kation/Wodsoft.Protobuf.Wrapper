@@ -21,7 +21,7 @@ namespace Wodsoft.Protobuf
         /// <inheritdoc/>
         public IEnumerable<IMessageField> GetFields(Type type)
         {
-            var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(t => t.CanWrite && t.CanRead).OrderBy(t => t.Name) .ToArray();
+            var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(t => t.CanWrite && t.CanRead && t.GetMethod.GetParameters().Length == 0).OrderBy(t => t.Name) .ToArray();
             if (properties.Any(t => t.GetCustomAttribute<DataMemberAttribute>() != null))
             {
                 return properties.Where(t => t.GetCustomAttribute<DataMemberAttribute>() != null).Select(t => new PropertyMessageField(t.GetCustomAttribute<DataMemberAttribute>().Order, t)).OrderBy(t => t.FieldNumber).ToArray();
