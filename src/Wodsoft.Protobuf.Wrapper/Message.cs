@@ -174,7 +174,7 @@ namespace Wodsoft.Protobuf
             var type = typeof(T);
             if (typeof(IMessage).IsAssignableFrom(type))
             {
-                MessageType = type;
+                MessageType = typeof(MessageMessage<>).MakeGenericType(type);
             }
             else
             {
@@ -195,6 +195,7 @@ namespace Wodsoft.Protobuf
                     MessageType = typeof(StringMessage);
                 else if (type.IsValueType && MessageBuilder.GetCodeGenerator<T>() != null)
                     MessageType = typeof(StructureMessage<>).MakeGenericType(type);
+                
             }
         }
 
