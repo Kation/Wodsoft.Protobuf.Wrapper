@@ -11,7 +11,7 @@ namespace Wodsoft.Protobuf
     /// </summary>
     public class FieldMessageField : IMessageField
     {
-        private FieldInfo _fieldInfo;
+        private readonly FieldInfo _fieldInfo;
 
         /// <summary>
         /// Create message field.

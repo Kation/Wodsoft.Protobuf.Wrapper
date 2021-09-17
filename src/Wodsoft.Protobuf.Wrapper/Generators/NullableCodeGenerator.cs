@@ -13,7 +13,7 @@ namespace Wodsoft.Protobuf.Generators
     public sealed class NullableCodeGenerator<T> : NonstandardPrimitiveCodeGenerator<T?>
         where T : struct
     {
-        private IStructureCodeGenerator<T> _codeGenerator;
+        private readonly IStructureCodeGenerator<T> _codeGenerator;
 
         /// <summary>
         /// Create a nullable code generator.

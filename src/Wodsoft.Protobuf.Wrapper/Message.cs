@@ -196,7 +196,7 @@ namespace Wodsoft.Protobuf
         /// </summary>
         public Message()
         {
-            SourceValue = default(T);
+            SourceValue = default;
         }
 
         /// <summary>
@@ -339,7 +339,7 @@ namespace Wodsoft.Protobuf
         public static implicit operator T(Message<T> message)
         {
             if (message == null)
-                return default(T);
+                return default;
             return message.SourceValue;
         }
     }

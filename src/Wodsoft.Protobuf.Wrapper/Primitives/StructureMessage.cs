@@ -12,7 +12,7 @@ namespace Wodsoft.Protobuf.Primitives
     public class StructureMessage<T> : Message<T>
         where T : struct
     {
-        private static IStructureCodeGenerator<T> _CodeGenerator = (IStructureCodeGenerator<T>)MessageBuilder.GetCodeGenerator<T>();
+        private readonly static IStructureCodeGenerator<T> _CodeGenerator = (IStructureCodeGenerator<T>)MessageBuilder.GetCodeGenerator<T>();
 
         /// <summary>
         /// Initialize structure message wrapper.

@@ -125,8 +125,8 @@ namespace Wodsoft.Protobuf
                 var fieldProvider = (IMessageFieldProvider)baseType.GetProperty(nameof(Message<object>.FieldProvider)).GetValue(null);
                 var properties = fieldProvider.GetFields(t);
                 BuildMethod(typeBuilder, baseType, t, properties, out var initFields, out refTypes);
-                var constructor = BuildConstructor(typeBuilder, baseType, t, initFields);
-                BuildEmptyConstructor(typeBuilder, baseType, t, constructor);
+                var constructor = BuildConstructor(baseType, t, initFields);
+                BuildEmptyConstructor(baseType, t, constructor);
                 var messageType = typeBuilder.CreateTypeInfo();
                 typeof(ObjectCodeGenerator<>).MakeGenericType(t).GetField(nameof(ObjectCodeGenerator<object>.ComputeSize), BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, messageType.GetMethod("ComputeSize"));
                 typeof(ObjectCodeGenerator<>).MakeGenericType(t).GetField(nameof(ObjectCodeGenerator<object>.EmptyConstructor), BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, messageType.GetConstructor(Array.Empty<Type>()));
@@ -141,7 +141,7 @@ namespace Wodsoft.Protobuf
             return wrappedType;
         }
 
-        private static void BuildEmptyConstructor(TypeBuilder typeBuilder, Type baseType, Type wrapType, ConstructorBuilder constructor)
+        private static void BuildEmptyConstructor(Type baseType, Type wrapType, ConstructorBuilder constructor)
         {
             var constructorBuilder = (ConstructorBuilder)baseType.GetField(nameof(Message<object>.EmptyConstructor), BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
             var ilGenerator = constructorBuilder.GetILGenerator();
@@ -159,7 +159,7 @@ namespace Wodsoft.Protobuf
             ilGenerator.Emit(OpCodes.Ret);
         }
 
-        private static ConstructorBuilder BuildConstructor(TypeBuilder typeBuilder, Type baseType, Type objectType, FieldBuilder[] initFields)
+        private static ConstructorBuilder BuildConstructor(Type baseType, Type objectType, FieldBuilder[] initFields)
         {
             var constructorBuilder = (ConstructorBuilder)baseType.GetField(nameof(Message<object>.ValueConstructor), BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
             var ilGenerator = constructorBuilder.GetILGenerator();

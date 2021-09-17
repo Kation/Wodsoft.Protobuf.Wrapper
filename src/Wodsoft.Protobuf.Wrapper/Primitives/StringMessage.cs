@@ -10,8 +10,6 @@ namespace Wodsoft.Protobuf.Primitives
     /// </summary>
     public class StringMessage : Message<string>
     {
-        private static readonly ICodeGenerator<string> _CodeGenerator = MessageBuilder.GetCodeGenerator<string>();
-
         /// <summary>
         /// Initialize string message wrapper.
         /// </summary>

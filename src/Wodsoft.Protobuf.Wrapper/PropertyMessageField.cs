@@ -11,7 +11,7 @@ namespace Wodsoft.Protobuf
     /// </summary>
     public class PropertyMessageField : IMessageField
     {
-        private PropertyInfo _propertyInfo;
+        private readonly PropertyInfo _propertyInfo;
 
         /// <summary>
         /// Create message field.
