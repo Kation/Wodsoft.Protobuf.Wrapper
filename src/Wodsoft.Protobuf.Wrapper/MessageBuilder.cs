@@ -63,9 +63,11 @@ namespace Wodsoft.Protobuf
         internal static readonly ModuleBuilder ModuleBuilder;
         private static readonly ConcurrentDictionary<Type, Type> _TypeCache = new ConcurrentDictionary<Type, Type>();
         private static readonly Dictionary<Type, ICodeGenerator> _CodeGenerators = new Dictionary<Type, ICodeGenerator>();
+        private static readonly Dictionary<Type, Delegate> _TypeInitializer = new Dictionary<Type, Delegate>();
 
         /// <summary>
-        /// Set code generator of type <typeparamref name="T"/>.
+        /// Set code generator of type <typeparamref name="T"/>.<br/>
+        /// The operation is NOT THREAD SAFTY.
         /// </summary>
         /// <typeparam name="T">Object type.</typeparam>
         /// <param name="codeGenerator">Code generator of type <typeparamref name="T"/>.</param>
@@ -88,6 +90,17 @@ namespace Wodsoft.Protobuf
         }
 
         /// <summary>
+        /// Set initializer function of type <typeparamref name="T"/>.
+        /// </summary>
+        /// <typeparam name="T">Object type.</typeparam>
+        /// <param name="initializer">Initializer function that return a value of type <typeparamref name="T"/>.</param>
+        public static void SetTypeInitializer<T>(Func<T> initializer)
+        {
+            _TypeInitializer[typeof(T)] = initializer ?? throw new ArgumentNullException(nameof(initializer));
+        }
+
+
+        /// <summary>
         /// Get dynamic assembly of wrappers.
         /// </summary>
         /// <returns>Return assembly.</returns>
@@ -102,7 +115,6 @@ namespace Wodsoft.Protobuf
         /// <typeparam name="T">Type of object.</typeparam>
         /// <returns>Return message wrapper type.</returns>
         public static Type GetMessageType<T>()
-            where T : new()
         {
             var type = Message<T>.MessageType;
             if (type == null)
@@ -154,7 +166,17 @@ namespace Wodsoft.Protobuf
                 ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
             }
             else
-                ilGenerator.Emit(OpCodes.Newobj, wrapType.GetConstructor(Array.Empty<Type>()));
+            {
+                var cons = wrapType.GetConstructor(Array.Empty<Type>());
+                if (cons != null)
+                    ilGenerator.Emit(OpCodes.Newobj, cons);
+                else
+                {
+                    if (!_TypeInitializer.ContainsKey(wrapType))
+                        throw new NotSupportedException($"Type of \"{wrapType.FullName}\" does not have empty parameter constructor. Need to set type initializer first.");
+                    ilGenerator.Emit(OpCodes.Call, typeof(MessageBuilder).GetMethod("NewObject", BindingFlags.Public | BindingFlags.Static).MakeGenericMethod(wrapType));
+                }
+            }
             ilGenerator.Emit(OpCodes.Call, constructor);
             ilGenerator.Emit(OpCodes.Ret);
         }
@@ -885,6 +907,19 @@ namespace Wodsoft.Protobuf
             ilGenerator.Emit(OpCodes.Call, field.FieldType.GetMethods().Where(t => t.Name == "Add").OrderBy(t => t.GetParameters().Length).First());
 
             ilGenerator.MarkLabel(skip);
+        }
+
+        /// <summary>
+        /// New a object with type initializer.
+        /// </summary>
+        /// <typeparam name="T">Type of object.</typeparam>
+        /// <returns>Return initialized object.</returns>
+        public static T NewObject<T>()
+        {
+            var type = typeof(T);
+            if (!_TypeInitializer.ContainsKey(type))
+                throw new NotSupportedException("Type initializer not found. Need to set type initializer first.");
+            return ((Func<T>)_TypeInitializer[type])();
         }
     }
 }

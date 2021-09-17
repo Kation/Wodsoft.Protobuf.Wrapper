@@ -633,5 +633,19 @@ namespace Wodsoft.Protobuf.Wrapper.Test
             //};
             MessageBuilder.GetMessageType<LoopModel>();
         }
+
+        [Fact]
+        public void ValueConstructorModel_Test()
+        {
+            MessageBuilder.SetTypeInitializer(() => new ValueConstructorModel(string.Empty));
+            {
+                MemoryStream stream = new MemoryStream();
+                ValueConstructorModel model = new ValueConstructorModel("Test");
+                Message.Serialize(stream, model);
+                stream.Position = 0;
+                var result = Message<ValueConstructorModel>.Deserialize(stream);
+                Assert.Equal(model.Value, result.Value);
+            }
+        }
     }
 }

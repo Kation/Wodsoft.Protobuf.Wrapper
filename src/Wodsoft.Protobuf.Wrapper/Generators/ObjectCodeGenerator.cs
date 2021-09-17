@@ -12,7 +12,6 @@ namespace Wodsoft.Protobuf.Generators
     /// </summary>
     /// <typeparam name="T"></typeparam>
     public class ObjectCodeGenerator<T> : NonstandardPrimitiveCodeGenerator<T>
-        where T : new()
     {
         private static Func<T, int> _ComputeSizeDelegate;
 
