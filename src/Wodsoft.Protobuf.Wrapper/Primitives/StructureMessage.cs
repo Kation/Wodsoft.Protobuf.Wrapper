@@ -12,7 +12,14 @@ namespace Wodsoft.Protobuf.Primitives
     public class StructureMessage<T> : Message<T>
         where T : struct
     {
-        private readonly static IStructureCodeGenerator<T> _CodeGenerator = (IStructureCodeGenerator<T>)MessageBuilder.GetCodeGenerator<T>();
+        private readonly static IStructureCodeGenerator<T> _CodeGenerator;
+
+        static StructureMessage()
+        {
+            _CodeGenerator = (IStructureCodeGenerator<T>)MessageBuilder.GetCodeGenerator<T>();
+            if (_CodeGenerator == null)
+                throw new NotSupportedException($"Type of \"{typeof(T).FullName}\" does not supported by StructureMessage<T>, because there is no code generator found.");
+        }
 
         /// <summary>
         /// Initialize structure message wrapper.
