@@ -24,6 +24,8 @@ namespace Wodsoft.Protobuf.Primitives
         /// <inheritdoc/>
         protected override int CalculateSize()
         {
+            if (SourceValue == null)
+                return 0;
             return CodedOutputStream.ComputeStringSize(SourceValue);
         }
 
@@ -36,7 +38,8 @@ namespace Wodsoft.Protobuf.Primitives
         /// <inheritdoc/>
         protected override void Write(ref WriteContext writer)
         {
-            writer.WriteString(SourceValue);
+            if (SourceValue != null)
+                writer.WriteString(SourceValue);
         }
     }
 }
