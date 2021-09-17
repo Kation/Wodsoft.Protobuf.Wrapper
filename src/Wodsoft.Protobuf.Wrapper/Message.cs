@@ -172,23 +172,30 @@ namespace Wodsoft.Protobuf
         static Message()
         {
             var type = typeof(T);
-            TypeBuilder = MessageBuilder.ModuleBuilder.DefineType(
-                type.Namespace + ".Proxy_" + type.Name + "_" + type.GetHashCode(),
-                TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.AutoClass | TypeAttributes.AnsiClass | TypeAttributes.BeforeFieldInit,
-                typeof(Message<T>));
-            ValueConstructor = TypeBuilder.DefineConstructor(
-                MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName | MethodAttributes.HideBySig,
-                CallingConventions.Standard | CallingConventions.HasThis,
-                new Type[] { typeof(T) });
-            EmptyConstructor = TypeBuilder.DefineConstructor(
-                MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName | MethodAttributes.HideBySig,
-                CallingConventions.Standard | CallingConventions.HasThis,
-                Array.Empty<Type>());
+            if (typeof(IMessage).IsAssignableFrom(type))
+            {
+                MessageType = type;
+            }
+            else
+            {
+                TypeBuilder = MessageBuilder.ModuleBuilder.DefineType(
+                    type.Namespace + ".Proxy_" + type.Name + "_" + type.GetHashCode(),
+                    TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.AutoClass | TypeAttributes.AnsiClass | TypeAttributes.BeforeFieldInit,
+                    typeof(Message<T>));
+                ValueConstructor = TypeBuilder.DefineConstructor(
+                    MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName | MethodAttributes.HideBySig,
+                    CallingConventions.Standard | CallingConventions.HasThis,
+                    new Type[] { typeof(T) });
+                EmptyConstructor = TypeBuilder.DefineConstructor(
+                    MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName | MethodAttributes.HideBySig,
+                    CallingConventions.Standard | CallingConventions.HasThis,
+                    Array.Empty<Type>());
 
-            if (type == typeof(string))
-                MessageType = typeof(StringMessage);
-            else if (type.IsValueType && MessageBuilder.GetCodeGenerator<T>() != null)
-                MessageType = typeof(StructureMessage<>).MakeGenericType(type);
+                if (type == typeof(string))
+                    MessageType = typeof(StringMessage);
+                else if (type.IsValueType && MessageBuilder.GetCodeGenerator<T>() != null)
+                    MessageType = typeof(StructureMessage<>).MakeGenericType(type);
+            }
         }
 
         /// <summary>
@@ -251,8 +258,13 @@ namespace Wodsoft.Protobuf
                 throw new ArgumentNullException(nameof(output));
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
-            Message<T> message = source;
-            output.WriteRawMessage(message);
+            if (source is IMessage m)
+                output.WriteRawMessage(m);
+            else
+            {
+                Message<T> message = source;
+                output.WriteRawMessage(message);
+            }
             output.Flush();
         }
 
@@ -289,15 +301,24 @@ namespace Wodsoft.Protobuf
         {
             if (input == null)
                 throw new ArgumentNullException(nameof(input));
-            if (_GetMessageWithoutValue == null)
+            if (typeof(IMessage).IsAssignableFrom(typeof(T)))
             {
-                if (MessageType == null)
-                    MessageBuilder.GetMessageType(typeof(T));
-                _GetMessageWithoutValue = Expression.Lambda<Func<Message<T>>>(Expression.New(MessageType.GetConstructor(Array.Empty<Type>()))).Compile();
+                T message = Activator.CreateInstance<T>();
+                input.ReadRawMessage((IMessage)message);
+                return message;
             }
-            Message<T> message = _GetMessageWithoutValue();
-            input.ReadRawMessage(message);
-            return message.Source;
+            else
+            {
+                if (_GetMessageWithoutValue == null)
+                {
+                    if (MessageType == null)
+                        MessageBuilder.GetMessageType(typeof(T));
+                    _GetMessageWithoutValue = Expression.Lambda<Func<Message<T>>>(Expression.New(MessageType.GetConstructor(Array.Empty<Type>()))).Compile();
+                }
+                Message<T> message = _GetMessageWithoutValue();
+                input.ReadRawMessage(message);
+                return message.Source;
+            }
         }
 
         /// <summary>

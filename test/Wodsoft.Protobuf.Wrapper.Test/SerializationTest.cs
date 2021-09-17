@@ -284,6 +284,26 @@ namespace Wodsoft.Protobuf.Wrapper.Test
         }
 
         [Fact]
+        public void Message_Value_Test()
+        {
+            ProtobufModel model = new ProtobufModel
+            {
+                IntValue = 100,
+                StringValue = "Hello"
+            };
+
+            MemoryStream stream = new MemoryStream();
+            Message.Serialize(stream, model);
+
+            stream.Position = 0;
+            var model2 = Message<ProtobufModel>.Deserialize(stream);
+
+            Assert.Equal(model.IntValue, model2.IntValue);
+            Assert.Equal(model.StringValue, model2.StringValue);
+        }
+
+
+        [Fact]
         public void Object_Class_Collection_Test()
         {
             ObjectCollectionModel model = new ObjectCollectionModel();
