@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.Serialization;
@@ -132,6 +133,8 @@ namespace Wodsoft.Protobuf
             Type[] refTypes = null;
             var wrappedType = _TypeCache.GetOrAdd(type, t =>
             {
+                if (t.IsClass && t.GetConstructor(Array.Empty<Type>()) == null && !_TypeInitializer.ContainsKey(t))
+                    throw new NotSupportedException($"Type of \"{t.FullName}\" does not have empty parameter constructor. Need to set type initializer first.");
                 var baseType = typeof(Message<>).MakeGenericType(t);
                 var typeBuilder = (TypeBuilder)baseType.GetField(nameof(Message<object>.TypeBuilder), BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
                 var fieldProvider = (IMessageFieldProvider)baseType.GetProperty(nameof(Message<object>.FieldProvider)).GetValue(null);
@@ -143,8 +146,14 @@ namespace Wodsoft.Protobuf
                 typeof(ObjectCodeGenerator<>).MakeGenericType(t).GetField(nameof(ObjectCodeGenerator<object>.ComputeSize), BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, messageType.GetMethod("ComputeSize"));
                 typeof(ObjectCodeGenerator<>).MakeGenericType(t).GetField(nameof(ObjectCodeGenerator<object>.EmptyConstructor), BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, messageType.GetConstructor(Array.Empty<Type>()));
                 typeof(ObjectCodeGenerator<>).MakeGenericType(t).GetField(nameof(ObjectCodeGenerator<object>.WrapConstructor), BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, messageType.GetConstructor(new Type[] { t }));
-                typeof(Message<>).MakeGenericType(t).GetField(nameof(Message<object>.MessageType), BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, messageType);
-                return messageType.AsType();
+                baseType.GetField(nameof(Message<object>.MessageType), BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, messageType);
+                var finalType = messageType.AsType();
+                {
+                    baseType.GetField(nameof(Message<object>.GetMessageWithoutValue), BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, Expression.Lambda(typeof(Func<>).MakeGenericType(baseType), Expression.New(finalType.GetConstructor(Array.Empty<Type>()))).Compile());
+                    var valueParameter = Expression.Parameter(type, "value");
+                    baseType.GetField(nameof(Message<object>.GetMessageWithValue), BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, Expression.Lambda(typeof(Func<,>).MakeGenericType(t, baseType), Expression.New(finalType.GetConstructor(new Type[] { t }), valueParameter), valueParameter).Compile());
+                }
+                return finalType;
             });
             if (refTypes != null)
                 foreach (var item in refTypes)
@@ -168,14 +177,10 @@ namespace Wodsoft.Protobuf
             else
             {
                 var cons = wrapType.GetConstructor(Array.Empty<Type>());
-                if (cons != null)
-                    ilGenerator.Emit(OpCodes.Newobj, cons);
-                else
-                {
-                    if (!_TypeInitializer.ContainsKey(wrapType))
-                        throw new NotSupportedException($"Type of \"{wrapType.FullName}\" does not have empty parameter constructor. Need to set type initializer first.");
+                if (cons == null)
                     ilGenerator.Emit(OpCodes.Call, typeof(MessageBuilder).GetMethod("NewObject", BindingFlags.Public | BindingFlags.Static).MakeGenericMethod(wrapType));
-                }
+                else
+                    ilGenerator.Emit(OpCodes.Newobj, cons);
             }
             ilGenerator.Emit(OpCodes.Call, constructor);
             ilGenerator.Emit(OpCodes.Ret);

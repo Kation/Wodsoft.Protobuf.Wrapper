@@ -6,8 +6,10 @@ using System.IO;
 using System.Text;
 using Xunit;
 
+[assembly: CollectionBehavior(CollectionBehavior.CollectionPerClass, DisableTestParallelization = true)]
 namespace Wodsoft.Protobuf.Wrapper.Test
 {
+    [Collection("SerializationTest")]
     public class SerializationTest
     {
         [Fact]

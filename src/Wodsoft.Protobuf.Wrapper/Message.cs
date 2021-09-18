@@ -147,9 +147,9 @@ namespace Wodsoft.Protobuf
         /// <returns></returns>
         public static Message<T> New<T>()
         {
-            if (Message<T>.MessageType != null)
-                return Message<T>._GetMessageWithoutValue();
-            return MessageBuilder.NewObject<T>();
+            if (Message<T>.MessageType == null)
+                MessageBuilder.GetMessageType<T>();
+            return Message<T>.GetMessageWithoutValue();
         }
     }
 
@@ -164,8 +164,8 @@ namespace Wodsoft.Protobuf
         internal static Type MessageType;
         internal static readonly TypeBuilder TypeBuilder;
 
-        internal static Func<Message<T>> _GetMessageWithoutValue;
-        internal static Func<T, Message<T>> _GetMessageWithValue;
+        internal static Func<Message<T>> GetMessageWithoutValue;
+        internal static Func<T, Message<T>> GetMessageWithValue;
 
         private static IMessageFieldProvider _FieldProvider = GeneralMessageFieldProvider.Instance;
         /// <summary>
@@ -192,13 +192,33 @@ namespace Wodsoft.Protobuf
             else
             {
                 if (type == typeof(string))
+                {
                     MessageType = typeof(StringMessage);
+                    GetMessageWithoutValue = Expression.Lambda<Func<Message<T>>>(Expression.New(MessageType.GetConstructor(Array.Empty<Type>()))).Compile();
+                    var valueParameter = Expression.Parameter(typeof(T), "value");
+                    GetMessageWithValue = Expression.Lambda<Func<T, Message<T>>>(Expression.New(MessageType.GetConstructor(new Type[] { typeof(T) }), valueParameter), valueParameter).Compile();
+                }
                 else if (type.IsValueType && MessageBuilder.GetCodeGenerator<T>() != null)
+                {
                     MessageType = typeof(StructureMessage<>).MakeGenericType(type);
+                    GetMessageWithoutValue = Expression.Lambda<Func<Message<T>>>(Expression.New(MessageType.GetConstructor(Array.Empty<Type>()))).Compile();
+                    var valueParameter = Expression.Parameter(typeof(T), "value");
+                    GetMessageWithValue = Expression.Lambda<Func<T, Message<T>>>(Expression.New(MessageType.GetConstructor(new Type[] { typeof(T) }), valueParameter), valueParameter).Compile();
+                }
                 else if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>))
+                {
                     MessageType = typeof(CollectionMessage<,>).MakeGenericType(type, type.GetGenericArguments()[0]);
+                    GetMessageWithoutValue = Expression.Lambda<Func<Message<T>>>(Expression.New(MessageType.GetConstructor(Array.Empty<Type>()))).Compile();
+                    var valueParameter = Expression.Parameter(typeof(T), "value");
+                    GetMessageWithValue = Expression.Lambda<Func<T, Message<T>>>(Expression.New(MessageType.GetConstructor(new Type[] { typeof(T) }), valueParameter), valueParameter).Compile();
+                }
                 else if (type.IsArray)
+                {
                     MessageType = typeof(ArrayMessage<>).MakeGenericType(type.GetElementType());
+                    GetMessageWithoutValue = Expression.Lambda<Func<Message<T>>>(Expression.New(MessageType.GetConstructor(Array.Empty<Type>()))).Compile();
+                    var valueParameter = Expression.Parameter(typeof(T), "value");
+                    GetMessageWithValue = Expression.Lambda<Func<T, Message<T>>>(Expression.New(MessageType.GetConstructor(new Type[] { typeof(T) }), valueParameter), valueParameter).Compile();
+                }
                 else
                 {
                     TypeBuilder = MessageBuilder.ModuleBuilder.DefineType(
@@ -328,13 +348,13 @@ namespace Wodsoft.Protobuf
             }
             else
             {
-                if (_GetMessageWithoutValue == null)
+                if (GetMessageWithoutValue == null)
                 {
                     if (MessageType == null)
                         MessageBuilder.GetMessageType(typeof(T));
-                    _GetMessageWithoutValue = Expression.Lambda<Func<Message<T>>>(Expression.New(MessageType.GetConstructor(Array.Empty<Type>()))).Compile();
+                    GetMessageWithoutValue = Expression.Lambda<Func<Message<T>>>(Expression.New(MessageType.GetConstructor(Array.Empty<Type>()))).Compile();
                 }
-                Message<T> message = _GetMessageWithoutValue();
+                Message<T> message = GetMessageWithoutValue();
                 input.ReadRawMessage(message);
                 return message.Source;
             }
@@ -360,14 +380,14 @@ namespace Wodsoft.Protobuf
         {
             if (source == null)
                 return null;
-            if (_GetMessageWithValue == null)
+            if (GetMessageWithValue == null)
             {
                 if (MessageType == null)
                     MessageBuilder.GetMessageType(typeof(T));
                 var valueParameter = Expression.Parameter(typeof(T), "value");
-                _GetMessageWithValue = Expression.Lambda<Func<T, Message<T>>>(Expression.New(MessageType.GetConstructor(new Type[] { typeof(T) }), valueParameter), valueParameter).Compile();
+                GetMessageWithValue = Expression.Lambda<Func<T, Message<T>>>(Expression.New(MessageType.GetConstructor(new Type[] { typeof(T) }), valueParameter), valueParameter).Compile();
             }
-            var message = _GetMessageWithValue(source);
+            var message = GetMessageWithValue(source);
             return message;
         }
 

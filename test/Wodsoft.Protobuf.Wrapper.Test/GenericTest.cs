@@ -6,6 +6,7 @@ using Xunit;
 
 namespace Wodsoft.Protobuf.Wrapper.Test
 {
+    [Collection("GenericTest")]
     public class GenericTest
     {
         [Fact]
