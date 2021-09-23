@@ -63,7 +63,6 @@ namespace Wodsoft.Protobuf
         internal static readonly AssemblyBuilder AssemblyBuilder;
         internal static readonly ModuleBuilder ModuleBuilder;
         private static readonly ConcurrentDictionary<Type, Type> _TypeCache = new ConcurrentDictionary<Type, Type>();
-        private static readonly Dictionary<Type, Delegate> _TypeInitializer = new Dictionary<Type, Delegate>();
 
         /// <summary>
         /// Set code generator of type <typeparamref name="T"/>.<br/>
@@ -105,7 +104,7 @@ namespace Wodsoft.Protobuf
         /// <param name="initializer">Initializer function that return a value of type <typeparamref name="T"/>.</param>
         public static void SetTypeInitializer<T>(Func<T> initializer)
         {
-            _TypeInitializer[typeof(T)] = initializer ?? throw new ArgumentNullException(nameof(initializer));
+            MessageBuilder<T>.Initializer = initializer ?? throw new ArgumentNullException(nameof(initializer));
         }
 
 
@@ -930,15 +929,16 @@ namespace Wodsoft.Protobuf
         /// <returns>Return initialized object.</returns>
         public static T NewObject<T>()
         {
-            var type = typeof(T);
-            if (!_TypeInitializer.ContainsKey(type))
+            var initializer = MessageBuilder<T>.Initializer;
+            if (initializer == null)
                 throw new NotSupportedException("Type initializer not found. Need to set type initializer first.");
-            return ((Func<T>)_TypeInitializer[type])();
+            return initializer();
         }
     }
 
     internal class MessageBuilder<T>
     {
         public static ICodeGenerator<T> CodeGenerator;
+        public static Func<T> Initializer;
     }
 }
