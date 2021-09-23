@@ -25,45 +25,44 @@ namespace Wodsoft.Protobuf
             AssemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("Wodsoft.ComBoost.Grpc.Dynamic"), AssemblyBuilderAccess.Run);
             ModuleBuilder = AssemblyBuilder.DefineDynamicModule("Services");
 
-            _CodeGenerators[typeof(bool)] = new BooleanCodeGenerator();
-            _CodeGenerators[typeof(byte)] = new ByteCodeGenerator();
-            _CodeGenerators[typeof(sbyte)] = new SByteCodeGenerator();
-            _CodeGenerators[typeof(short)] = new Int16CodeGenerator();
-            _CodeGenerators[typeof(int)] = new Int32CodeGenerator();
-            _CodeGenerators[typeof(long)] = new Int64CodeGenerator();
-            _CodeGenerators[typeof(ushort)] = new UInt16CodeGenerator();
-            _CodeGenerators[typeof(uint)] = new UInt32CodeGenerator();
-            _CodeGenerators[typeof(ulong)] = new UInt64CodeGenerator();
-            _CodeGenerators[typeof(float)] = new SingleCodeGenerator();
-            _CodeGenerators[typeof(double)] = new DoubleCodeGenerator();
-            _CodeGenerators[typeof(DateTime)] = new DateTimeCodeGenerator();
-            _CodeGenerators[typeof(DateTimeOffset)] = new DateTimeOffsetCodeGenerator();
-            _CodeGenerators[typeof(TimeSpan)] = new TimeSpanCodeGenerator();
-            _CodeGenerators[typeof(Guid)] = new GuidCodeGenerator();
-            _CodeGenerators[typeof(string)] = new StringCodeGenerator();
-            _CodeGenerators[typeof(byte[])] = new ByteArrayCodeGenerator();
+            MessageBuilder<bool>.CodeGenerator = new BooleanCodeGenerator();
+            MessageBuilder<byte>.CodeGenerator = new ByteCodeGenerator();
+            MessageBuilder<sbyte>.CodeGenerator = new SByteCodeGenerator();
+            MessageBuilder<short>.CodeGenerator = new Int16CodeGenerator();
+            MessageBuilder<int>.CodeGenerator = new Int32CodeGenerator();
+            MessageBuilder<long>.CodeGenerator = new Int64CodeGenerator();
+            MessageBuilder<ushort>.CodeGenerator = new UInt16CodeGenerator();
+            MessageBuilder<uint>.CodeGenerator = new UInt32CodeGenerator();
+            MessageBuilder<ulong>.CodeGenerator = new UInt64CodeGenerator();
+            MessageBuilder<float>.CodeGenerator = new SingleCodeGenerator();
+            MessageBuilder<double>.CodeGenerator = new DoubleCodeGenerator();
+            MessageBuilder<DateTime>.CodeGenerator = new DateTimeCodeGenerator();
+            MessageBuilder<DateTimeOffset>.CodeGenerator = new DateTimeOffsetCodeGenerator();
+            MessageBuilder<TimeSpan>.CodeGenerator = new TimeSpanCodeGenerator();
+            MessageBuilder<Guid>.CodeGenerator = new GuidCodeGenerator();
+            MessageBuilder<string>.CodeGenerator = new StringCodeGenerator();
+            MessageBuilder<byte[]>.CodeGenerator = new ByteArrayCodeGenerator();
 
-            _CodeGenerators[typeof(bool?)] = new NullableCodeGenerator<bool>(new BooleanCodeGenerator());
-            _CodeGenerators[typeof(byte?)] = new NullableCodeGenerator<byte>(new ByteCodeGenerator());
-            _CodeGenerators[typeof(sbyte?)] = new NullableCodeGenerator<sbyte>(new SByteCodeGenerator());
-            _CodeGenerators[typeof(short?)] = new NullableCodeGenerator<short>(new Int16CodeGenerator());
-            _CodeGenerators[typeof(int?)] = new NullableCodeGenerator<int>(new Int32CodeGenerator());
-            _CodeGenerators[typeof(long?)] = new NullableCodeGenerator<long>(new Int64CodeGenerator());
-            _CodeGenerators[typeof(ushort?)] = new NullableCodeGenerator<ushort>(new UInt16CodeGenerator());
-            _CodeGenerators[typeof(uint?)] = new NullableCodeGenerator<uint>(new UInt32CodeGenerator());
-            _CodeGenerators[typeof(ulong?)] = new NullableCodeGenerator<ulong>(new UInt64CodeGenerator());
-            _CodeGenerators[typeof(float?)] = new NullableCodeGenerator<float>(new SingleCodeGenerator());
-            _CodeGenerators[typeof(double?)] = new NullableCodeGenerator<double>(new DoubleCodeGenerator());
-            _CodeGenerators[typeof(DateTime?)] = new NullableCodeGenerator<DateTime>(new DateTimeCodeGenerator());
-            _CodeGenerators[typeof(DateTimeOffset?)] = new NullableCodeGenerator<DateTimeOffset>(new DateTimeOffsetCodeGenerator());
-            _CodeGenerators[typeof(TimeSpan?)] = new NullableCodeGenerator<TimeSpan>(new TimeSpanCodeGenerator());
-            _CodeGenerators[typeof(Guid?)] = new NullableCodeGenerator<Guid>(new GuidCodeGenerator());
+            MessageBuilder<bool?>.CodeGenerator = new NullableCodeGenerator<bool>(new BooleanCodeGenerator());
+            MessageBuilder<byte?>.CodeGenerator = new NullableCodeGenerator<byte>(new ByteCodeGenerator());
+            MessageBuilder<sbyte?>.CodeGenerator = new NullableCodeGenerator<sbyte>(new SByteCodeGenerator());
+            MessageBuilder<short?>.CodeGenerator = new NullableCodeGenerator<short>(new Int16CodeGenerator());
+            MessageBuilder<int?>.CodeGenerator = new NullableCodeGenerator<int>(new Int32CodeGenerator());
+            MessageBuilder<long?>.CodeGenerator = new NullableCodeGenerator<long>(new Int64CodeGenerator());
+            MessageBuilder<ushort?>.CodeGenerator = new NullableCodeGenerator<ushort>(new UInt16CodeGenerator());
+            MessageBuilder<uint?>.CodeGenerator = new NullableCodeGenerator<uint>(new UInt32CodeGenerator());
+            MessageBuilder<ulong?>.CodeGenerator = new NullableCodeGenerator<ulong>(new UInt64CodeGenerator());
+            MessageBuilder<float?>.CodeGenerator = new NullableCodeGenerator<float>(new SingleCodeGenerator());
+            MessageBuilder<double?>.CodeGenerator = new NullableCodeGenerator<double>(new DoubleCodeGenerator());
+            MessageBuilder<DateTime?>.CodeGenerator = new NullableCodeGenerator<DateTime>(new DateTimeCodeGenerator());
+            MessageBuilder<DateTimeOffset?>.CodeGenerator = new NullableCodeGenerator<DateTimeOffset>(new DateTimeOffsetCodeGenerator());
+            MessageBuilder<TimeSpan?>.CodeGenerator = new NullableCodeGenerator<TimeSpan>(new TimeSpanCodeGenerator());
+            MessageBuilder<Guid?>.CodeGenerator = new NullableCodeGenerator<Guid>(new GuidCodeGenerator());
         }
 
         internal static readonly AssemblyBuilder AssemblyBuilder;
         internal static readonly ModuleBuilder ModuleBuilder;
         private static readonly ConcurrentDictionary<Type, Type> _TypeCache = new ConcurrentDictionary<Type, Type>();
-        private static readonly Dictionary<Type, ICodeGenerator> _CodeGenerators = new Dictionary<Type, ICodeGenerator>();
         private static readonly Dictionary<Type, Delegate> _TypeInitializer = new Dictionary<Type, Delegate>();
 
         /// <summary>
@@ -75,7 +74,7 @@ namespace Wodsoft.Protobuf
         public static void SetCodeGenerator<T>(ICodeGenerator<T> codeGenerator)
             where T : new()
         {
-            _CodeGenerators[typeof(T)] = codeGenerator ?? throw new ArgumentNullException(nameof(codeGenerator));
+            MessageBuilder<T>.CodeGenerator = codeGenerator;
         }
 
         /// <summary>
@@ -85,9 +84,18 @@ namespace Wodsoft.Protobuf
         /// <returns>Return code generator if exists, otherwise null.</returns>
         public static ICodeGenerator<T> GetCodeGenerator<T>()
         {
-            if (_CodeGenerators.TryGetValue(typeof(T), out var value))
-                return (ICodeGenerator<T>)value;
-            return null;
+            return MessageBuilder<T>.CodeGenerator;
+        }
+
+        private static ICodeGenerator GetCodeGenerator(Type type)
+        {
+            return (ICodeGenerator)typeof(MessageBuilder<>).MakeGenericType(type).GetField("CodeGenerator").GetValue(null);
+        }
+
+        private static bool TryGetCodeGenerator(Type type, out ICodeGenerator codeGenerator)
+        {
+            codeGenerator = (ICodeGenerator)typeof(MessageBuilder<>).MakeGenericType(type).GetField("CodeGenerator").GetValue(null);
+            return codeGenerator != null;
         }
 
         /// <summary>
@@ -250,7 +258,7 @@ namespace Wodsoft.Protobuf
                 foreach (var field in fields)
                 {
                     uint tag;
-                    if (_CodeGenerators.TryGetValue(field.FieldType, out var codeGenerator))
+                    if (TryGetCodeGenerator(field.FieldType, out var codeGenerator))
                     {
                         tag = WireFormat.MakeTag(field.FieldNumber, codeGenerator.WireType);
                     }
@@ -259,7 +267,7 @@ namespace Wodsoft.Protobuf
                         var type = Nullable.GetUnderlyingType(field.FieldType) ?? field.FieldType;
                         if (type.IsEnum)
                         {
-                            tag = WireFormat.MakeTag(field.FieldNumber, _CodeGenerators[Enum.GetUnderlyingType(type)].WireType);
+                            tag = WireFormat.MakeTag(field.FieldNumber, GetCodeGenerator(Enum.GetUnderlyingType(type)).WireType);
                         }
                         else
                             tag = WireFormat.MakeTag(field.FieldNumber, WireFormat.WireType.LengthDelimited);
@@ -274,7 +282,7 @@ namespace Wodsoft.Protobuf
                         if (type == typeof(RepeatedField<>) || type == typeof(IList<>) || type == typeof(ICollection<>) || type == typeof(List<>) || type == typeof(Collection<>) || type == typeof(IEnumerable<>))
                         {
                             type = field.FieldType.GetGenericArguments()[0];
-                            if (_CodeGenerators.TryGetValue(type, out codeGenerator) && codeGenerator.WireType == WireFormat.WireType.Varint)
+                            if (TryGetCodeGenerator(type, out codeGenerator) && codeGenerator.WireType == WireFormat.WireType.Varint)
                             {
 
                                 readILGenerator.Emit(OpCodes.Ldloc, readTagVariable);
@@ -285,7 +293,7 @@ namespace Wodsoft.Protobuf
                     }
                     else if (field.FieldType.IsArray)
                     {
-                        if (_CodeGenerators.TryGetValue(field.FieldType.GetElementType(), out codeGenerator) && codeGenerator.WireType == WireFormat.WireType.Varint)
+                        if (TryGetCodeGenerator(field.FieldType.GetElementType(), out codeGenerator) && codeGenerator.WireType == WireFormat.WireType.Varint)
                         {
 
                             readILGenerator.Emit(OpCodes.Ldloc, readTagVariable);
@@ -309,7 +317,7 @@ namespace Wodsoft.Protobuf
 
                 readILGenerator.MarkLabel(readTagLabels[field]);
 
-                _CodeGenerators.TryGetValue(field.FieldType, out var codeGenerator);
+                TryGetCodeGenerator(field.FieldType, out var codeGenerator);
 
                 //GenerateReadProperty(computeSizeILGenerator, computeSizeValueVariable, sourceFieldInfo, property);
                 //ComputeSize
@@ -356,7 +364,7 @@ namespace Wodsoft.Protobuf
                         var type = underlyingType ?? field.FieldType;
 
                         var valueType = Enum.GetUnderlyingType(type);
-                        codeGenerator = _CodeGenerators[valueType];
+                        codeGenerator = GetCodeGenerator(valueType);
 
                         //Write
                         codeGenerator.GenerateWriteCode(writeILGenerator, writeValueVariable, field.FieldNumber);
@@ -445,7 +453,7 @@ namespace Wodsoft.Protobuf
                         {
                             var collectionType = typeof(RepeatedField<>).MakeGenericType(elementType);
 
-                            _CodeGenerators.TryGetValue(elementType, out codeGenerator);
+                            TryGetCodeGenerator(elementType, out codeGenerator);
 
                             var codecField = typeBuilder.DefineField("_Codec_" + field.FieldName, typeof(FieldCodec<>).MakeGenericType(elementType), FieldAttributes.Private | FieldAttributes.Static);
                             //static constructor
@@ -547,7 +555,7 @@ namespace Wodsoft.Protobuf
                             var codecField = typeBuilder.DefineField("_Codec_" + field.FieldName, typeof(MapField<,>.Codec).MakeGenericType(elementType, elementType2), FieldAttributes.Private | FieldAttributes.Static);
                             //static constructor
                             {
-                                _CodeGenerators.TryGetValue(elementType, out codeGenerator);
+                                TryGetCodeGenerator(elementType, out codeGenerator);
                                 if (codeGenerator == null)
                                 {
                                     GenerateCodecValue(staticIlGenerator, elementType, 1);
@@ -560,7 +568,7 @@ namespace Wodsoft.Protobuf
                                     staticIlGenerator.Emit(OpCodes.Ldc_I4, 1);
                                     staticIlGenerator.Emit(OpCodes.Callvirt, generatorType.GetMethod("CreateFieldCodec", new Type[] { typeof(int) }));
                                 }
-                                _CodeGenerators.TryGetValue(elementType2, out codeGenerator);
+                                TryGetCodeGenerator(elementType2, out codeGenerator);
                                 if (codeGenerator == null)
                                 {
                                     GenerateCodecValue(staticIlGenerator, elementType2, 2);
@@ -927,5 +935,10 @@ namespace Wodsoft.Protobuf
                 throw new NotSupportedException("Type initializer not found. Need to set type initializer first.");
             return ((Func<T>)_TypeInitializer[type])();
         }
+    }
+
+    internal class MessageBuilder<T>
+    {
+        public static ICodeGenerator<T> CodeGenerator;
     }
 }
