@@ -133,8 +133,6 @@ namespace Wodsoft.Protobuf
             Type[] refTypes = null;
             var wrappedType = _TypeCache.GetOrAdd(type, t =>
             {
-                if (t.IsClass && t.GetConstructor(Array.Empty<Type>()) == null && !_TypeInitializer.ContainsKey(t))
-                    throw new NotSupportedException($"Type of \"{t.FullName}\" does not have empty parameter constructor. Need to set type initializer first.");
                 var baseType = typeof(Message<>).MakeGenericType(t);
                 var typeBuilder = (TypeBuilder)baseType.GetField(nameof(Message<object>.TypeBuilder), BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
                 var fieldProvider = (IMessageFieldProvider)baseType.GetProperty(nameof(Message<object>.FieldProvider)).GetValue(null);
@@ -696,7 +694,10 @@ namespace Wodsoft.Protobuf
                                     readILGenerator.Emit(OpCodes.Ldloc, valueVariable);
                                     readILGenerator.Emit(OpCodes.Brtrue, afterNew);
 
-                                    readILGenerator.Emit(OpCodes.Newobj, field.FieldType.GetConstructor(Array.Empty<Type>()));
+                                    if (field.FieldType.GetConstructor(Array.Empty<Type>()) == null)
+                                        readILGenerator.Emit(OpCodes.Call, typeof(MessageBuilder).GetMethod("NewObject", BindingFlags.Public | BindingFlags.Static).MakeGenericMethod(field.FieldType));
+                                    else
+                                        readILGenerator.Emit(OpCodes.Newobj, field.FieldType.GetConstructor(Array.Empty<Type>()));
                                     readILGenerator.Emit(OpCodes.Stloc, valueVariable);
 
                                     readILGenerator.MarkLabel(afterNew);
