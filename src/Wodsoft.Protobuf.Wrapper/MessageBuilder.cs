@@ -318,7 +318,11 @@ namespace Wodsoft.Protobuf
         {
             var baseType = typeof(Message<T>);
             var objectType = typeof(T);
-            var computeSizeMethodBuilder = typeBuilder.DefineMethod("ComputeSize", MethodAttributes.Static | MethodAttributes.Public, typeof(int), new Type[] { objectType });
+            MethodBuilder computeSizeMethodBuilder;
+            if (objectType.IsValueType)
+                computeSizeMethodBuilder = typeBuilder.DefineMethod("ComputeSize", MethodAttributes.Static | MethodAttributes.Public, typeof(int), new Type[] { objectType.MakeByRefType() });
+            else
+                computeSizeMethodBuilder = typeBuilder.DefineMethod("ComputeSize", MethodAttributes.Static | MethodAttributes.Public, typeof(int), new Type[] { objectType });
             typeof(ObjectCodeGenerator<>).MakeGenericType(objectType).GetField(nameof(ObjectCodeGenerator<object>.ComputeSize), BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, computeSizeMethodBuilder);
             var computeSizeILGenerator = computeSizeMethodBuilder.GetILGenerator();
             var sizeVariable = computeSizeILGenerator.DeclareLocal(typeof(int));
@@ -937,7 +941,10 @@ namespace Wodsoft.Protobuf
                 typeBuilder.DefineMethodOverride(calculateSizeMethodBuilder, baseType.GetMethod("CalculateSize", BindingFlags.NonPublic | BindingFlags.Instance));
 
                 calculateSizeILGenerator.Emit(OpCodes.Ldarg_0);
-                calculateSizeILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
+                if (objectType.IsValueType)
+                    calculateSizeILGenerator.Emit(OpCodes.Ldflda, sourceFieldInfo);
+                else
+                    calculateSizeILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
                 calculateSizeILGenerator.Emit(OpCodes.Call, computeSizeMethodBuilder);
                 calculateSizeILGenerator.Emit(OpCodes.Ret);
             }
