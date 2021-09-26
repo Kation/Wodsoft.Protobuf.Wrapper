@@ -13,14 +13,6 @@ namespace Wodsoft.Protobuf.Primitives
         where T : IMessage
     {
         /// <summary>
-        /// Initialize IMessage message wrapper.
-        /// </summary>
-        public MessageMessage()
-        {
-
-        }
-
-        /// <summary>
         /// Initialize IMessage message wrapper with a value.
         /// </summary>
         /// <param name="value">Value.</param>
@@ -32,21 +24,25 @@ namespace Wodsoft.Protobuf.Primitives
         /// <inheritdoc/>
         protected override int CalculateSize()
         {
-            if (SourceValue == null)
-                return 0;
             return SourceValue.CalculateSize();
         }
 
         /// <inheritdoc/>
         protected override void Read(ref ParseContext parser)
         {
-            parser.ReadMessage(SourceValue);
+            if (SourceValue is IBufferMessage bufferMessage)
+                bufferMessage.InternalMergeFrom(ref parser);
+            else
+                parser.ReadMessage(SourceValue);
         }
 
         /// <inheritdoc/>
         protected override void Write(ref WriteContext writer)
         {
-            writer.WriteMessage(SourceValue);
+            if (SourceValue is IBufferMessage bufferMessage)
+                bufferMessage.InternalWriteTo(ref writer);
+            else
+                writer.WriteMessage(SourceValue);
         }
     }
 }
