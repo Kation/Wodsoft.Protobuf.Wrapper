@@ -153,8 +153,10 @@ namespace Wodsoft.Protobuf
                 else
                     staticILGenerator.Emit(OpCodes.Ldtoken, typeof(MessageBuilder).GetMethod("MessageFactory", BindingFlags.NonPublic | BindingFlags.Static).MakeGenericMethod(elementType));
                 staticILGenerator.Emit(OpCodes.Call, typeof(MethodBase).GetMethod("GetMethodFromHandle", new Type[1] { typeof(RuntimeMethodHandle) }));
+                staticILGenerator.Emit(OpCodes.Castclass, typeof(MethodInfo));
                 staticILGenerator.Emit(OpCodes.Call, typeof(Delegate).GetMethod(nameof(Delegate.CreateDelegate), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(Type), typeof(MethodInfo) }, null));
-                staticILGenerator.Emit(OpCodes.Call, typeof(FieldCodec).GetMethod("ForMessage").MakeGenericMethod(elementType));
+                staticILGenerator.Emit(OpCodes.Newobj, typeof(MessageParser<>).MakeGenericType(elementType).GetConstructor(new Type[] { typeof(Func<>).MakeGenericType(elementType) }));
+                staticILGenerator.Emit(OpCodes.Call, typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForMessage)).MakeGenericMethod(elementType));
             }
             else
             {
