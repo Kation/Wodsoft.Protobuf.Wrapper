@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Text;
+using Wodsoft.Protobuf.Primitives;
 using Xunit;
 
 [assembly: CollectionBehavior(CollectionBehavior.CollectionPerClass, DisableTestParallelization = true)]
@@ -266,10 +267,24 @@ namespace Wodsoft.Protobuf.Wrapper.Test
             MessageModel model = new MessageModel();
             model.Title = "This is a protobuf message included model";
             model.Number = 99;
+            model.ByteString = ByteString.CopyFrom(new byte[] { 123, 34, 12, 200 });
             model.Model = new ProtobufModel
             {
                 IntValue = 100,
                 StringValue = "Hello"
+            };
+            model.Models = new List<ProtobufModel>
+            {
+                new ProtobufModel
+                {
+                    IntValue = 200,
+                    StringValue = "Hello"
+                },
+                new ProtobufModel
+                {
+                    IntValue = 210,
+                    StringValue = "Hello"
+                }
             };
 
             MemoryStream stream = new MemoryStream();
@@ -280,6 +295,7 @@ namespace Wodsoft.Protobuf.Wrapper.Test
 
             Assert.Equal(model.Title, model2.Title);
             Assert.Equal(model.Number, model2.Number);
+            Assert.Equal(model.ByteString, model2.ByteString);
             Assert.NotNull(model2.Model);
             Assert.Equal(model.Model.IntValue, model2.Model.IntValue);
             Assert.Equal(model.Model.StringValue, model2.Model.StringValue);
@@ -296,13 +312,18 @@ namespace Wodsoft.Protobuf.Wrapper.Test
 
             MemoryStream stream = new MemoryStream();
             {
-                Message.Serialize(stream, model);
+                //Message.Serialize(stream, model);
+
+                ((IMessage)(Message<ProtobufModel>)model).WriteTo(stream);
+                //Message.Serialize(stream, model);
 
                 stream.Position = 0;
-                var model2 = Message<ProtobufModel>.Deserialize(stream);
+                Assert.Equal(stream.Length, ((IMessage)(Message<ProtobufModel>)model).CalculateSize());
+                var model2 = new MessageMessage<ProtobufModel>(new ProtobufModel());
+                ((IMessage)model2).MergeFrom(stream);
 
-                Assert.Equal(model.IntValue, model2.IntValue);
-                Assert.Equal(model.StringValue, model2.StringValue);
+                Assert.Equal(model.IntValue, model2.Source.IntValue);
+                Assert.Equal(model.StringValue, model2.Source.StringValue);
             }
 
             {
@@ -317,7 +338,6 @@ namespace Wodsoft.Protobuf.Wrapper.Test
                 Assert.Equal(model.StringValue, model2.StringValue);
             }
         }
-
 
         [Fact]
         public void Object_Class_Collection_Test()
@@ -402,15 +422,17 @@ namespace Wodsoft.Protobuf.Wrapper.Test
         [Fact]
         public void Primitives_Test()
         {
+            Assert.Equal(0, ((IMessage)new StringMessage()).CalculateSize());
+            Assert.Throws<TypeInitializationException>(() => new StructureMessage<PointModel>());
             MemoryStream stream = new MemoryStream();
             {
                 var value = "test";
                 Message.Serialize(stream, "test");
                 stream.Position = 0;
+                Assert.Equal(stream.Length, ((IMessage)(Message<string>)value).CalculateSize());
                 var result = Message<string>.Deserialize(stream);
                 Assert.Equal(value, result);
             }
-
             {
                 stream.Position = 0;
                 Message.Serialize(stream, true);
@@ -427,12 +449,12 @@ namespace Wodsoft.Protobuf.Wrapper.Test
                 var result = Message<byte>.Deserialize(stream);
                 Assert.Equal(value, result);
             }
-
             {
                 var value = new DateTime(2021, 1, 1, 0, 0, 0, 0, DateTimeKind.Local);
                 stream.Position = 0;
                 Message.Serialize(stream, value);
                 stream.Position = 0;
+                Assert.Equal(stream.Length, ((IMessage)(Message<DateTime>)value).CalculateSize());
                 var result = Message<DateTime>.Deserialize(stream);
                 Assert.Equal(value, result.ToLocalTime());
             }
@@ -557,6 +579,7 @@ namespace Wodsoft.Protobuf.Wrapper.Test
                 };
                 Message.Serialize(stream, list);
                 stream.Position = 0;
+                Assert.Equal(stream.Length, ((IMessage)(Message<List<string>>)list).CalculateSize());
                 var result = Message<List<string>>.Deserialize(stream);
                 Assert.Equal(list, result);
             }
@@ -581,6 +604,12 @@ namespace Wodsoft.Protobuf.Wrapper.Test
                 stream.Position = 0;
                 var result = Message<List<double>>.Deserialize(stream);
                 Assert.Equal(list, result);
+                stream.Position = 0;
+                ((IMessage)(Message<List<double>>)result).MergeFrom(stream);
+                Assert.Equal(list, result);
+            }
+            {
+                Assert.Equal(0, ((IMessage)new CollectionMessage<List<SimplyModel>, SimplyModel>()).CalculateSize());
             }
         }
 
@@ -595,6 +624,7 @@ namespace Wodsoft.Protobuf.Wrapper.Test
                 };
                 Message.Serialize(stream, list);
                 stream.Position = 0;
+                Assert.Equal(stream.Length, ((IMessage)((Message<string[]>)list)).CalculateSize());
                 var result = Message<string[]>.Deserialize(stream);
                 Assert.Equal(list, result);
             }
@@ -619,6 +649,37 @@ namespace Wodsoft.Protobuf.Wrapper.Test
                 stream.Position = 0;
                 var result = Message<double[]>.Deserialize(stream);
                 Assert.Equal(list, result);
+            }
+            {
+                MemoryStream stream = new MemoryStream();
+                UserModel[] list = new UserModel[]
+                {
+                    new UserModel
+                    {
+                         UserId = "123"
+                    }
+                };
+                Message.Serialize(stream, list);
+                stream.Position = 0;
+                var result = Message<UserModel[]>.Deserialize(stream);
+                Assert.Equal(list[0].UserId, result[0].UserId);
+            }
+            {
+                MemoryStream stream = new MemoryStream();
+                List<SimplyModel2> list = new List<SimplyModel2>
+                {
+                    new SimplyModel2
+                    {
+                        GuidValue = Guid.NewGuid()
+                    }
+                };
+                Message.Serialize(stream, list);
+                stream.Position = 0;
+                var result = Message<SimplyModel2[]>.Deserialize(stream);
+                Assert.Equal(list[0].GuidValue, result[0].GuidValue);
+            }
+            {
+                Assert.Equal(0, ((IMessage)new ArrayMessage<SimplyModel>()).CalculateSize());
             }
         }
 

@@ -10,6 +10,7 @@
   - [Deserialize](#Deserialize)
   - [Field Definition](#Field-Definition)
   - [Field Order](#Field-Order)
+  - [Non empty parameter constructor object](#Non-empty-parameter-constructor-object)
   - [Get Protobuf Wrapper](#Get-Protobuf-Wrapper)
 - [Advanced](#Advanced)
   - [Supported property types and relationships](#Supported-property-types-and-relationships)
@@ -100,6 +101,10 @@ And set `Message<T>.FieldProvider` to your field provider instance value.
 Use `System.Runtime.Serialization.DataMemberAttribute` for your properties and set the `Order` property to attribute.
 
 **Important:** If there is a `DataMemberAttribute` on any property, it will only serialize or deserialize with properties which has `DataMemberAttribute`.
+
+### Non empty parameter constructor object
+
+Use `MessageBuilder.SetTypeInitializer<T>(Func<T> initializer)` to set the initializer for non empty parameter constructor object.
 
 ### Get Protobuf Wrapper
 

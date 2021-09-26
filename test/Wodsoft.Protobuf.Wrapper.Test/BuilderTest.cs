@@ -13,6 +13,7 @@ namespace Wodsoft.Protobuf.Wrapper.Test
         public void Create_Simply_Type_Test()
         {
             MessageBuilder.GetMessageType<SimplyModel>();
+            MessageBuilder.GetMessageType<SimplyModel2>();
             MessageBuilder.GetMessageType<NullableModel>();
             MessageBuilder.GetMessageType<EnumModel>();
             MessageBuilder.GetMessageType<CollectionModel>();
@@ -22,6 +23,7 @@ namespace Wodsoft.Protobuf.Wrapper.Test
             MessageBuilder.GetMessageType<ObjectCollectionModel>();
             MessageBuilder.GetMessageType<ObjectDictionaryModel>();
             MessageBuilder.GetMessageType<PointModel>();
+            MessageBuilder.GetMessageType<ValueConstructorModel>();
 
             var generator = new Lokad.ILPack.AssemblyGenerator();
             var bytes = generator.GenerateAssemblyBytes(MessageBuilder.GetAssembly());
