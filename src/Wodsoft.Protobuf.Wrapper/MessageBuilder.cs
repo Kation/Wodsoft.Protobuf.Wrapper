@@ -42,6 +42,7 @@ namespace Wodsoft.Protobuf
             MessageBuilder<Guid>.CodeGenerator = new GuidCodeGenerator();
             MessageBuilder<string>.CodeGenerator = new StringCodeGenerator();
             MessageBuilder<byte[]>.CodeGenerator = new ByteArrayCodeGenerator();
+            MessageBuilder<ByteString>.CodeGenerator = new ByteStringCodeGenerator();
 
             MessageBuilder<bool?>.CodeGenerator = new NullableCodeGenerator<bool>(new BooleanCodeGenerator());
             MessageBuilder<byte?>.CodeGenerator = new NullableCodeGenerator<byte>(new ByteCodeGenerator());
