@@ -188,6 +188,13 @@ namespace Wodsoft.Protobuf
             if (typeof(IMessage).IsAssignableFrom(type))
             {
                 MessageType = typeof(MessageMessage<>).MakeGenericType(type);
+                var constructor = type.GetConstructor(Array.Empty<Type>());
+                if (constructor == null)
+                    GetMessageWithoutValue = Expression.Lambda<Func<Message<T>>>(Expression.New(MessageType.GetConstructor(new Type[] { typeof(T) }), Expression.Call(typeof(MessageBuilder).GetMethod(nameof(MessageBuilder.NewObject)).MakeGenericMethod(type)))).Compile();
+                else
+                    GetMessageWithoutValue = Expression.Lambda<Func<Message<T>>>(Expression.New(MessageType.GetConstructor(new Type[] { typeof(T) }), Expression.New(constructor))).Compile();
+                var valueParameter = Expression.Parameter(typeof(T), "value");
+                GetMessageWithValue = Expression.Lambda<Func<T, Message<T>>>(Expression.New(MessageType.GetConstructor(new Type[] { typeof(T) }), valueParameter), valueParameter).Compile();
             }
             else
             {
