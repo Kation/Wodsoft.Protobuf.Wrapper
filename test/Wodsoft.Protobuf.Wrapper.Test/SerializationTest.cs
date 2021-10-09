@@ -110,6 +110,20 @@ namespace Wodsoft.Protobuf.Wrapper.Test
         }
 
         [Fact]
+        public void Nullable_Primitives_Test()
+        {
+            MemoryStream stream = new MemoryStream();
+            {
+                byte? value = 155;
+                stream.Position = 0;
+                Message.Serialize(stream, value);
+                stream.Position = 0;
+                var result = Message<byte?>.Deserialize(stream);
+                Assert.Equal(value, result);
+            }
+        }
+
+        [Fact]
         public void Enum_Class_Test()
         {
             EnumModel model = new EnumModel

@@ -205,7 +205,7 @@ namespace Wodsoft.Protobuf
                     var valueParameter = Expression.Parameter(typeof(T), "value");
                     GetMessageWithValue = Expression.Lambda<Func<T, Message<T>>>(Expression.New(MessageType.GetConstructor(new Type[] { typeof(T) }), valueParameter), valueParameter).Compile();
                 }
-                else if (type.IsValueType && MessageBuilder.GetCodeGenerator<T>() != null)
+                else if (type.IsValueType && Nullable.GetUnderlyingType(type) == null && MessageBuilder.GetCodeGenerator<T>() != null)
                 {
                     MessageType = typeof(StructureMessage<>).MakeGenericType(type);
                     GetMessageWithoutValue = Expression.Lambda<Func<Message<T>>>(Expression.New(MessageType.GetConstructor(Array.Empty<Type>()))).Compile();
@@ -215,6 +215,14 @@ namespace Wodsoft.Protobuf
                 else if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>))
                 {
                     MessageType = typeof(CollectionMessage<,>).MakeGenericType(type, type.GetGenericArguments()[0]);
+                    GetMessageWithoutValue = Expression.Lambda<Func<Message<T>>>(Expression.New(MessageType.GetConstructor(Array.Empty<Type>()))).Compile();
+                    var valueParameter = Expression.Parameter(typeof(T), "value");
+                    GetMessageWithValue = Expression.Lambda<Func<T, Message<T>>>(Expression.New(MessageType.GetConstructor(new Type[] { typeof(T) }), valueParameter), valueParameter).Compile();
+                }
+                else if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
+                {
+                    var underlyingType = Nullable.GetUnderlyingType(type);                    
+                    MessageType = typeof(NullableMessage<>).MakeGenericType(underlyingType);
                     GetMessageWithoutValue = Expression.Lambda<Func<Message<T>>>(Expression.New(MessageType.GetConstructor(Array.Empty<Type>()))).Compile();
                     var valueParameter = Expression.Parameter(typeof(T), "value");
                     GetMessageWithValue = Expression.Lambda<Func<T, Message<T>>>(Expression.New(MessageType.GetConstructor(new Type[] { typeof(T) }), valueParameter), valueParameter).Compile();
