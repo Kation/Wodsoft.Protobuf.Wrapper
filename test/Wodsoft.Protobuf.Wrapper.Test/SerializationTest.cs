@@ -112,13 +112,31 @@ namespace Wodsoft.Protobuf.Wrapper.Test
         [Fact]
         public void Nullable_Primitives_Test()
         {
-            MemoryStream stream = new MemoryStream();
             {
+                MemoryStream stream = new MemoryStream();
                 byte? value = 155;
                 stream.Position = 0;
                 Message.Serialize(stream, value);
                 stream.Position = 0;
                 var result = Message<byte?>.Deserialize(stream);
+                Assert.Equal(value, result);
+            }
+            {
+                MemoryStream stream = new MemoryStream();
+                ByteEnum? value = ByteEnum.Two;
+                stream.Position = 0;
+                Message.Serialize(stream, value);
+                stream.Position = 0;
+                var result = Message<ByteEnum?>.Deserialize(stream);
+                Assert.Equal(value, result);
+            }
+            {
+                MemoryStream stream = new MemoryStream();
+                int? value = null;
+                stream.Position = 0;
+                Message.Serialize(stream, value);
+                stream.Position = 0;
+                var result = Message<int?>.Deserialize(stream);
                 Assert.Equal(value, result);
             }
         }

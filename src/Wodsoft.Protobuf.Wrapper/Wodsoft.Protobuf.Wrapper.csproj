@@ -9,7 +9,7 @@
     <PackageProjectUrl>https://github.com/Kation/Wodsoft.Protobuf.Wrapper</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Kation/Wodsoft.Protobuf.Wrapper</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <Version>1.0.0-preview6</Version>
+    <Version>1.0.0-preview7</Version>
     <IncludeSymbols>true</IncludeSymbols>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>

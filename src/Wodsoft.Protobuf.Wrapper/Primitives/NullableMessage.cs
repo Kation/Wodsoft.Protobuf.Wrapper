@@ -14,12 +14,12 @@ namespace Wodsoft.Protobuf.Primitives
         where T : struct
     {
         /// <summary>
-        /// Initialize string message wrapper.
+        /// Initialize nullable message wrapper.
         /// </summary>
         public NullableMessage() { }
 
         /// <summary>
-        /// Initialize string message wrapper with a value.
+        /// Initialize nullable message wrapper with a value.
         /// </summary>
         /// <param name="value">Value.</param>
         public NullableMessage(T? value) : base(value) { }
@@ -36,7 +36,7 @@ namespace Wodsoft.Protobuf.Primitives
         protected override void Read(ref ParseContext parser)
         {
             var message = Message.New<T>();
-            parser.ReadMessage(message);
+            ((IBufferMessage)message).InternalMergeFrom(ref parser);
             SourceValue = message.Source;
         }
 
@@ -45,8 +45,8 @@ namespace Wodsoft.Protobuf.Primitives
         {
             if (SourceValue.HasValue)
             {
-                var message = (Message<T>)SourceValue.Value;
-                writer.WriteMessage(message);
+                IBufferMessage message = (Message<T>)SourceValue.Value;
+                message.InternalWriteTo(ref writer);
             }
         }
     }

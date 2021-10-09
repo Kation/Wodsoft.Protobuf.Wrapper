@@ -212,6 +212,14 @@ namespace Wodsoft.Protobuf
                     var valueParameter = Expression.Parameter(typeof(T), "value");
                     GetMessageWithValue = Expression.Lambda<Func<T, Message<T>>>(Expression.New(MessageType.GetConstructor(new Type[] { typeof(T) }), valueParameter), valueParameter).Compile();
                 }
+                else if (type.IsEnum)
+                {
+                    var underlyingType = Enum.GetUnderlyingType(type);
+                    MessageType = typeof(EnumMessage<,>).MakeGenericType(type, underlyingType);
+                    GetMessageWithoutValue = Expression.Lambda<Func<Message<T>>>(Expression.New(MessageType.GetConstructor(Array.Empty<Type>()))).Compile();
+                    var valueParameter = Expression.Parameter(typeof(T), "value");
+                    GetMessageWithValue = Expression.Lambda<Func<T, Message<T>>>(Expression.New(MessageType.GetConstructor(new Type[] { typeof(T) }), valueParameter), valueParameter).Compile();
+                }
                 else if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>))
                 {
                     MessageType = typeof(CollectionMessage<,>).MakeGenericType(type, type.GetGenericArguments()[0]);
@@ -221,7 +229,7 @@ namespace Wodsoft.Protobuf
                 }
                 else if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
                 {
-                    var underlyingType = Nullable.GetUnderlyingType(type);                    
+                    var underlyingType = Nullable.GetUnderlyingType(type);
                     MessageType = typeof(NullableMessage<>).MakeGenericType(underlyingType);
                     GetMessageWithoutValue = Expression.Lambda<Func<Message<T>>>(Expression.New(MessageType.GetConstructor(Array.Empty<Type>()))).Compile();
                     var valueParameter = Expression.Parameter(typeof(T), "value");
@@ -297,7 +305,7 @@ namespace Wodsoft.Protobuf
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
             if (source == null)
-                throw new ArgumentNullException(nameof(source));
+                return;
             Serialize(new CodedOutputStream(stream, true), source);
         }
 
@@ -311,7 +319,7 @@ namespace Wodsoft.Protobuf
             if (output == null)
                 throw new ArgumentNullException(nameof(output));
             if (source == null)
-                throw new ArgumentNullException(nameof(source));
+                return;
             if (source is IMessage m)
                 output.WriteRawMessage(m);
             else
@@ -355,6 +363,8 @@ namespace Wodsoft.Protobuf
         {
             if (input == null)
                 throw new ArgumentNullException(nameof(input));
+            if (input.IsAtEnd)
+                return default;
             if (typeof(IMessage).IsAssignableFrom(typeof(T)))
             {
                 T message = Activator.CreateInstance<T>();
