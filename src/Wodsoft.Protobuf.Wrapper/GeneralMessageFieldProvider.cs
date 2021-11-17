@@ -24,7 +24,13 @@ namespace Wodsoft.Protobuf
             var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(t => t.CanWrite && t.CanRead && t.GetMethod.GetParameters().Length == 0).OrderBy(t => t.Name) .ToArray();
             if (properties.Any(t => t.GetCustomAttribute<DataMemberAttribute>() != null))
             {
-                return properties.Where(t => t.GetCustomAttribute<DataMemberAttribute>() != null).Select(t => new PropertyMessageField(t.GetCustomAttribute<DataMemberAttribute>().Order, t)).OrderBy(t => t.FieldNumber).ToArray();
+                var fields = properties.Where(t => t.GetCustomAttribute<DataMemberAttribute>() != null).Select(t => new PropertyMessageField(t.GetCustomAttribute<DataMemberAttribute>().Order, t)).OrderBy(t => t.FieldNumber).ToArray();
+                foreach(var item in fields.GroupBy(t => t.FieldNumber))
+                {
+                    if (item.Count() > 1)
+                        throw new InvalidDataContractException($"There are many properties of \"{type.FullName}\" with same order {item.Key}.");
+                }
+                return fields;
             }
             else
             {
