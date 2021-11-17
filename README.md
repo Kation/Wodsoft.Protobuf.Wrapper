@@ -1,4 +1,4 @@
-# Wodsoft Protobuf Wrapper
+﻿# Wodsoft Protobuf Wrapper
 
 ## Contents
 
@@ -64,7 +64,13 @@ You can pass a `Google.Protobuf.CodedInputStream` from your context.
 YourModel model = new ();
 CodedInputStream input = ...;
 Message.Serialize(input, model);
+```
 
+Or you want to serialize to bytes directly.
+
+```csharp
+YourModel model = new ();
+var bytes = Message.SerializeToBytes(model);
 ```
 
 ### Deserialize
@@ -86,6 +92,12 @@ CodedOutputStream output = ...;
 YourType model = Message.Deserialize<YourType>(output);
 ```
 
+Or you want to deserialize from bytes directly.
+
+```csharp
+YourType model = Message.DeserializeFromBytes<YourType>(bytes);
+```
+
 ### Field Definition
 
 `IMessageFieldProvider.GetFields(Type type)` will return message fields that map from a object type.
@@ -98,9 +110,12 @@ And set `Message<T>.FieldProvider` to your field provider instance value.
 
 ### Field Order
 
-Use `System.Runtime.Serialization.DataMemberAttribute` for your properties and set the `Order` property to attribute.
+Use `System.Runtime.Serialization.DataMemberAttribute` for your properties and set the `Order` property to attribute.  
+Otherwise it will order properties with name.
 
-**Important:** If there is a `DataMemberAttribute` on any property, it will only serialize or deserialize with properties which has `DataMemberAttribute`.
+> **⚠️** If there is a `DataMemberAttribute` on any property, it will **ONLY** serialize or deserialize with properties which has `DataMemberAttribute`.
+
+> **⚠️** If there is no `DataMemberAttribute` exists, communication with difference version model program maybe **FAULT** because of difference property **ORDER**.
 
 ### Non empty parameter constructor object
 
