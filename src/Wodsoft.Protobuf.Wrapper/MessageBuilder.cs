@@ -461,14 +461,14 @@ namespace Wodsoft.Protobuf
                             //ComputeSize
                             {
                                 //IL: if (value.HasValue)
-                                computeSizeILGenerator.Emit(OpCodes.Ldloc, computeSizeValueVariable);
+                                computeSizeILGenerator.Emit(OpCodes.Ldloca, computeSizeValueVariable);
                                 computeSizeILGenerator.Emit(OpCodes.Call, field.FieldType.GetProperty("HasValue").GetMethod);
                                 computeSizeILGenerator.Emit(OpCodes.Brfalse, computeSizeEnd);
                             }
                             //Write
                             {
                                 //IL: if (value.HasValue)
-                                writeILGenerator.Emit(OpCodes.Ldloc, writeValueVariable);
+                                writeILGenerator.Emit(OpCodes.Ldloca, writeValueVariable);
                                 writeILGenerator.Emit(OpCodes.Call, field.FieldType.GetProperty("HasValue").GetMethod);
                                 writeILGenerator.Emit(OpCodes.Brfalse, writeEnd);
                             }
@@ -479,8 +479,32 @@ namespace Wodsoft.Protobuf
                         var valueType = Enum.GetUnderlyingType(type);
                         codeGenerator = MessageBuilder.GetCodeGenerator(valueType);
 
-                        //Write
-                        codeGenerator.GenerateWriteCode(writeILGenerator, writeValueVariable, field.FieldNumber);
+                        if (underlyingType != null)
+                        {
+                            //ComputeSize
+                            {
+                                var underlyingVariable = computeSizeILGenerator.DeclareLocal(underlyingType);
+                                computeSizeILGenerator.Emit(OpCodes.Ldloca, computeSizeValueVariable);
+                                computeSizeILGenerator.Emit(OpCodes.Call, field.FieldType.GetProperty("Value").GetMethod);
+                                computeSizeILGenerator.Emit(OpCodes.Stloc, underlyingVariable);
+                                codeGenerator.GenerateCalculateSizeCode(computeSizeILGenerator, underlyingVariable, field.FieldNumber);
+                            }
+                            //Write
+                            {
+                                var underlyingVariable = writeILGenerator.DeclareLocal(underlyingType);
+                                writeILGenerator.Emit(OpCodes.Ldloca, writeValueVariable);
+                                writeILGenerator.Emit(OpCodes.Call, field.FieldType.GetProperty("Value").GetMethod);
+                                writeILGenerator.Emit(OpCodes.Stloc, underlyingVariable);
+                                codeGenerator.GenerateWriteCode(writeILGenerator, underlyingVariable, field.FieldNumber);
+                            }
+                        }
+                        else
+                        {
+                            //ComputeSize
+                            codeGenerator.GenerateCalculateSizeCode(computeSizeILGenerator, computeSizeValueVariable, field.FieldNumber);
+                            //Write
+                            codeGenerator.GenerateWriteCode(writeILGenerator, writeValueVariable, field.FieldNumber);
+                        }
 
                         //Read
                         {
@@ -512,14 +536,13 @@ namespace Wodsoft.Protobuf
                             readILGenerator.Emit(OpCodes.Unbox_Any, type);
 
                             if (underlyingType != null)
-                                readILGenerator.Emit(OpCodes.Newobj, field.FieldType.GetConstructor(Array.Empty<Type>()));
+                                readILGenerator.Emit(OpCodes.Newobj, field.FieldType.GetConstructor(new Type[] { underlyingType }));
                             field.GenerateWriteFieldCode(readILGenerator);
                         }
 
                         //ComputeSize
                         {
                             //IL: size += CodedOutputStream.Compute{type}Size(value);
-                            codeGenerator.GenerateCalculateSizeCode(computeSizeILGenerator, computeSizeValueVariable, field.FieldNumber);
                             computeSizeILGenerator.Emit(OpCodes.Ldloc, sizeVariable);
                             computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
                             computeSizeILGenerator.Emit(OpCodes.Stloc, sizeVariable);

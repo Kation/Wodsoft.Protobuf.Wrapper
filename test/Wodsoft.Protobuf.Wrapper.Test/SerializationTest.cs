@@ -43,23 +43,23 @@ namespace Wodsoft.Protobuf.Wrapper.Test
             stream.Position = 0;
             var model2 = Message.Deserialize<SimplyModel>(stream);
 
-            Assert.Equal(model2.IntValue, model.IntValue);
-            Assert.Equal(model2.DoubleValue, model.DoubleValue);
-            Assert.Equal(model2.StringValue, model.StringValue);
-            Assert.Equal(model2.BooleanValue, model.BooleanValue);
-            Assert.Equal(model2.ByteValue, model.ByteValue);
-            Assert.Equal(model2.FloatValue, model.FloatValue);
-            Assert.Equal(model2.LongValue, model.LongValue);
-            Assert.Equal(model2.SByteValue, model.SByteValue);
-            Assert.Equal(model2.UInt32Value, model.UInt32Value);
-            Assert.Equal(model2.UInt64Value, model.UInt64Value);
-            Assert.Equal(model2.ShortValue, model.ShortValue);
-            Assert.Equal(model2.UShortValue, model.UShortValue);
-            Assert.Equal(model2.DateTime, model.DateTime);
-            Assert.Equal(model2.DateTimeOffset, model.DateTimeOffset);
-            Assert.Equal(model2.TimeSpan, model.TimeSpan);
-            Assert.Equal(model2.BytesValue, model.BytesValue);
-            Assert.Equal(model2.GuidValue, model.GuidValue);
+            Assert.Equal(model.IntValue, model2.IntValue);
+            Assert.Equal(model.DoubleValue, model2.DoubleValue);
+            Assert.Equal(model.StringValue, model2.StringValue);
+            Assert.Equal(model.BooleanValue, model2.BooleanValue);
+            Assert.Equal(model.ByteValue, model2.ByteValue);
+            Assert.Equal(model.FloatValue, model2.FloatValue);
+            Assert.Equal(model.LongValue, model2.LongValue);
+            Assert.Equal(model.SByteValue, model2.SByteValue);
+            Assert.Equal(model.UInt32Value, model2.UInt32Value);
+            Assert.Equal(model.UInt64Value, model2.UInt64Value);
+            Assert.Equal(model.ShortValue, model2.ShortValue);
+            Assert.Equal(model.UShortValue, model2.UShortValue);
+            Assert.Equal(model.DateTime, model2.DateTime);
+            Assert.Equal(model.DateTimeOffset, model2.DateTimeOffset);
+            Assert.Equal(model.TimeSpan, model2.TimeSpan);
+            Assert.Equal(model.BytesValue, model2.BytesValue);
+            Assert.Equal(model.GuidValue, model2.GuidValue);
         }
 
         [Fact]
@@ -82,7 +82,8 @@ namespace Wodsoft.Protobuf.Wrapper.Test
                 DateTime = new DateTime(2020, 7, 6, 6, 54, 10, DateTimeKind.Utc),
                 DateTimeOffset = new DateTimeOffset(2020, 6, 5, 23, 11, 2, TimeSpan.FromHours(8)),
                 TimeSpan = TimeSpan.FromHours(2.3),
-                BytesValue = new byte[] { 1, 2, 3, 4, 5 }
+                BytesValue = new byte[] { 1, 2, 3, 4, 5 },
+                EnumValue = ByteEnum.Two
             };
 
             MemoryStream stream = new MemoryStream();
@@ -91,22 +92,23 @@ namespace Wodsoft.Protobuf.Wrapper.Test
             stream.Position = 0;
             var model2 = Message.Deserialize<NullableModel>(stream);
 
-            Assert.Equal(model2.IntValue, model.IntValue);
-            Assert.Equal(model2.DoubleValue, model.DoubleValue);
-            Assert.Equal(model2.StringValue, model.StringValue);
-            Assert.Equal(model2.BooleanValue, model.BooleanValue);
-            Assert.Equal(model2.ByteValue, model.ByteValue);
-            Assert.Equal(model2.FloatValue, model.FloatValue);
-            Assert.Equal(model2.LongValue, model.LongValue);
-            Assert.Equal(model2.SByteValue, model.SByteValue);
-            Assert.Equal(model2.UInt32Value, model.UInt32Value);
-            Assert.Equal(model2.UInt64Value, model.UInt64Value);
-            Assert.Equal(model2.ShortValue, model.ShortValue);
-            Assert.Equal(model2.UShortValue, model.UShortValue);
-            Assert.Equal(model2.DateTime, model.DateTime);
-            Assert.Equal(model2.DateTimeOffset, model.DateTimeOffset);
-            Assert.Equal(model2.TimeSpan, model.TimeSpan);
-            Assert.Equal(model2.BytesValue, model.BytesValue);
+            Assert.Equal(model.IntValue, model2.IntValue);
+            Assert.Equal(model.DoubleValue, model2.DoubleValue);
+            Assert.Equal(model.StringValue, model2.StringValue);
+            Assert.Equal(model.BooleanValue, model2.BooleanValue);
+            Assert.Equal(model.ByteValue, model2.ByteValue);
+            Assert.Equal(model.FloatValue, model2.FloatValue);
+            Assert.Equal(model.LongValue, model2.LongValue);
+            Assert.Equal(model.SByteValue, model2.SByteValue);
+            Assert.Equal(model.UInt32Value, model2.UInt32Value);
+            Assert.Equal(model.UInt64Value, model2.UInt64Value);
+            Assert.Equal(model.ShortValue, model2.ShortValue);
+            Assert.Equal(model.UShortValue, model2.UShortValue);
+            Assert.Equal(model.DateTime, model2.DateTime);
+            Assert.Equal(model.DateTimeOffset, model2.DateTimeOffset);
+            Assert.Equal(model.TimeSpan, model2.TimeSpan);
+            Assert.Equal(model.BytesValue, model2.BytesValue);
+            Assert.Equal(model.EnumValue, model2.EnumValue);
         }
 
         [Fact]
@@ -162,14 +164,14 @@ namespace Wodsoft.Protobuf.Wrapper.Test
             stream.Position = 0;
             var model2 = Message<EnumModel>.Deserialize(stream);
 
-            Assert.Equal(model2.ByteEnum, model.ByteEnum);
-            Assert.Equal(model2.SByteEnum, model.SByteEnum);
-            Assert.Equal(model2.Int16Enum, model.Int16Enum);
-            Assert.Equal(model2.Int32Enum, model.Int32Enum);
-            Assert.Equal(model2.Int64Enum, model.Int64Enum);
-            Assert.Equal(model2.UInt16Enum, model.UInt16Enum);
-            Assert.Equal(model2.UInt32Enum, model.UInt32Enum);
-            Assert.Equal(model2.UInt64Enum, model.UInt64Enum);
+            Assert.Equal(model.ByteEnum, model2.ByteEnum);
+            Assert.Equal(model.SByteEnum, model2.SByteEnum);
+            Assert.Equal(model.Int16Enum, model2.Int16Enum);
+            Assert.Equal(model.Int32Enum, model2.Int32Enum);
+            Assert.Equal(model.Int64Enum, model2.Int64Enum);
+            Assert.Equal(model.UInt16Enum, model2.UInt16Enum);
+            Assert.Equal(model.UInt32Enum, model2.UInt32Enum);
+            Assert.Equal(model.UInt64Enum, model2.UInt64Enum);
         }
 
         [Fact]
@@ -427,10 +429,10 @@ namespace Wodsoft.Protobuf.Wrapper.Test
 
             Assert.NotNull(model2.Users);
             Assert.Equal(model.Users.Count, model2.Users.Count);
-            Assert.Equal(model.Users[2].UserId, model.Users[2].UserId);
-            Assert.Equal(model.Users[2].UserName, model.Users[2].UserName);
-            Assert.Equal(model.Users[1].UserId, model.Users[1].UserId);
-            Assert.Equal(model.Users[1].UserName, model.Users[1].UserName);
+            Assert.Equal(model.Users[2].UserId, model2.Users[2].UserId);
+            Assert.Equal(model.Users[2].UserName, model2.Users[2].UserName);
+            Assert.Equal(model.Users[1].UserId, model2.Users[1].UserId);
+            Assert.Equal(model.Users[1].UserName, model2.Users[1].UserName);
         }
 
 
