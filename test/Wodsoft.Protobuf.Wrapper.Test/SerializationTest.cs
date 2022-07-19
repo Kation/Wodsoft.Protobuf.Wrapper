@@ -1,4 +1,5 @@
 ﻿using Google.Protobuf;
+using Google.Protobuf.Collections;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -258,6 +259,11 @@ namespace Wodsoft.Protobuf.Wrapper.Test
             model.ShortMap = new Dictionary<string, short?>();
             model.ShortMap["a"] = 123;
             model.ShortMap["b"] = 456;
+            model.StringArrayMap = new Dictionary<string, string[]>();
+            model.StringArrayMap["a"] = new string[] { "a", "b", "c" };
+            model.StringListMap = new Dictionary<string, List<string>>();
+            model.StringListMap["a"] = new List<string> { "a", "b", "c" };
+
 
             MemoryStream stream = new MemoryStream();
             Message.Serialize(stream, model);
@@ -268,6 +274,9 @@ namespace Wodsoft.Protobuf.Wrapper.Test
             Assert.Equal<KeyValuePair<string, string>>(model.StringMap, model2.StringMap);
             Assert.Equal<KeyValuePair<byte, string>>(model.ByteMap, model2.ByteMap);
             Assert.Equal<KeyValuePair<string, short?>>(model.ShortMap, model2.ShortMap);
+            Assert.Equal(model.StringArrayMap.Count, model2.StringArrayMap.Count);
+            Assert.Equal(model.StringArrayMap["a"], model2.StringArrayMap["a"]);
+            Assert.Equal(model.StringListMap["a"], model2.StringListMap["a"]);
         }
 
         [Fact]

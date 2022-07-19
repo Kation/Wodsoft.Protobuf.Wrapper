@@ -687,7 +687,22 @@ namespace Wodsoft.Protobuf
                         else if (isDictionary)
                         {
                             var dictionaryType = typeof(MapField<,>).MakeGenericType(elementType, elementType2);
-
+                            Type valueType = elementType2;
+                            bool isArray = false;
+                            if (elementType2.IsArray && elementType2 != typeof(byte[]))
+                            {
+                                valueType = elementType2.GetElementType();
+                                isArray = true;
+                            }
+                            else if (elementType2.IsGenericType)
+                            {
+                                var genericType = elementType2.GetGenericTypeDefinition();
+                                if (genericType == typeof(IList<>) || genericType == typeof(List<>) || genericType == typeof(ICollection<>) || genericType == typeof(IEnumerable<>))
+                                {
+                                    valueType = elementType2.GetGenericArguments()[0];
+                                    isCollection = true;
+                                }
+                            }
                             var codecField = typeBuilder.DefineField("_Codec_" + field.FieldName, typeof(MapField<,>.Codec).MakeGenericType(elementType, elementType2), FieldAttributes.Private | FieldAttributes.Static);
                             //static constructor
                             {
@@ -704,18 +719,35 @@ namespace Wodsoft.Protobuf
                                     staticIlGenerator.Emit(OpCodes.Ldc_I4, 1);
                                     staticIlGenerator.Emit(OpCodes.Callvirt, generatorType.GetMethod("CreateFieldCodec", new Type[] { typeof(int) }));
                                 }
-                                MessageBuilder.TryGetCodeGenerator(elementType2, out codeGenerator);
-                                if (codeGenerator == null)
+                                if (isArray)
                                 {
-                                    MessageBuilder.GenerateCodecValue(staticIlGenerator, elementType2, 2);
+                                    var generatorType = typeof(ICodeGenerator<>).MakeGenericType(elementType2);
+                                    staticIlGenerator.Emit(OpCodes.Newobj, typeof(ArrayCodeGenerator<>).MakeGenericType(valueType).GetConstructor(Array.Empty<Type>()));
+                                    staticIlGenerator.Emit(OpCodes.Ldc_I4, 2);
+                                    staticIlGenerator.Emit(OpCodes.Callvirt, generatorType.GetMethod("CreateFieldCodec", new Type[] { typeof(int) }));
+                                }
+                                else if (isCollection)
+                                {
+                                    var generatorType = typeof(ICodeGenerator<>).MakeGenericType(elementType2);
+                                    staticIlGenerator.Emit(OpCodes.Newobj, typeof(CollectionCodeGenerator<,>).MakeGenericType(valueType, elementType2).GetConstructor(Array.Empty<Type>()));
+                                    staticIlGenerator.Emit(OpCodes.Ldc_I4, 2);
+                                    staticIlGenerator.Emit(OpCodes.Callvirt, generatorType.GetMethod("CreateFieldCodec", new Type[] { typeof(int) }));
                                 }
                                 else
                                 {
-                                    var generatorType = typeof(ICodeGenerator<>).MakeGenericType(elementType2);
-                                    staticIlGenerator.Emit(OpCodes.Call, typeof(MessageBuilder).GetMethod("GetCodeGenerator").MakeGenericMethod(elementType2));
-                                    staticIlGenerator.Emit(OpCodes.Castclass, generatorType);
-                                    staticIlGenerator.Emit(OpCodes.Ldc_I4, 2);
-                                    staticIlGenerator.Emit(OpCodes.Callvirt, generatorType.GetMethod("CreateFieldCodec", new Type[] { typeof(int) }));
+                                    MessageBuilder.TryGetCodeGenerator(elementType2, out codeGenerator);
+                                    if (codeGenerator == null)
+                                    {
+                                        MessageBuilder.GenerateCodecValue(staticIlGenerator, elementType2, 2);
+                                    }
+                                    else
+                                    {
+                                        var generatorType = typeof(ICodeGenerator<>).MakeGenericType(elementType2);
+                                        staticIlGenerator.Emit(OpCodes.Call, typeof(MessageBuilder).GetMethod("GetCodeGenerator").MakeGenericMethod(elementType2));
+                                        staticIlGenerator.Emit(OpCodes.Castclass, generatorType);
+                                        staticIlGenerator.Emit(OpCodes.Ldc_I4, 2);
+                                        staticIlGenerator.Emit(OpCodes.Callvirt, generatorType.GetMethod("CreateFieldCodec", new Type[] { typeof(int) }));
+                                    }
                                 }
 
                                 //IL: FieldCodec.For{XXX}(tag);

@@ -5,6 +5,11 @@ using System.Text;
 
 namespace Wodsoft.Protobuf.Primitives
 {
+    /// <summary>
+    /// Enum message.
+    /// </summary>
+    /// <typeparam name="TEnum"></typeparam>
+    /// <typeparam name="TValue"></typeparam>
     public class EnumMessage<TEnum, TValue> : Message<TEnum>
         where TEnum : Enum
         where TValue : struct
