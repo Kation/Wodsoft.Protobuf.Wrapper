@@ -227,6 +227,13 @@ namespace Wodsoft.Protobuf
                     var valueParameter = Expression.Parameter(typeof(T), "value");
                     GetMessageWithValue = Expression.Lambda<Func<T, Message<T>>>(Expression.New(MessageType.GetConstructor(new Type[] { typeof(T) }), valueParameter), valueParameter).Compile();
                 }
+                else if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
+                {
+                    MessageType = typeof(DictionaryMessage<,,>).MakeGenericType(type, type.GetGenericArguments()[0], type.GetGenericArguments()[1]);
+                    GetMessageWithoutValue = Expression.Lambda<Func<Message<T>>>(Expression.New(MessageType.GetConstructor(Array.Empty<Type>()))).Compile();
+                    var valueParameter = Expression.Parameter(typeof(T), "value");
+                    GetMessageWithValue = Expression.Lambda<Func<T, Message<T>>>(Expression.New(MessageType.GetConstructor(new Type[] { typeof(T) }), valueParameter), valueParameter).Compile();
+                }
                 else if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
                 {
                     var underlyingType = Nullable.GetUnderlyingType(type);

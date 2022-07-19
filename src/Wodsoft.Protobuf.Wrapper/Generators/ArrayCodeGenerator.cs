@@ -15,7 +15,7 @@ namespace Wodsoft.Protobuf.Generators
     /// <typeparam name="T"></typeparam>
     public class ArrayCodeGenerator<T> : NonstandardPrimitiveCodeGenerator<T[]>
     {
-        private readonly ICodeGenerator<T> _codeGenerator = MessageBuilder.GetCodeGenerator<T>();
+        private static readonly ICodeGenerator<T> _CodeGenerator = MessageBuilder.GetCodeGenerator<T>();
 
         /// <inheritdoc/>
         public override void GenerateReadCode(ILGenerator ilGenerator)
@@ -26,7 +26,7 @@ namespace Wodsoft.Protobuf.Generators
         /// <inheritdoc/>
         protected override int CalculateSize(T[] value)
         {
-            var codec = _codeGenerator.CreateFieldCodec(1);
+            var codec = _CodeGenerator.CreateFieldCodec(1);
             var size = value.Sum(t => codec.CalculateSizeWithTag(t));
             var length = CodedOutputStream.ComputeLengthSize(size);
             return size + length;
@@ -50,7 +50,7 @@ namespace Wodsoft.Protobuf.Generators
             //var collection = new RepeatedField<T>();
             //collection.AddEntriesFrom(ref parser, _codeGenerator.CreateFieldCodec(2));
             //return collection.ToArray();
-            var messsage = new ArrayMessage(_codeGenerator.CreateFieldCodec(1), WireFormat.MakeTag(1, _codeGenerator.WireType));
+            var messsage = new ArrayMessage(_CodeGenerator.CreateFieldCodec(1), WireFormat.MakeTag(1, _CodeGenerator.WireType));
             parser.ReadMessage(messsage);
             return messsage.ToArray();
         }
@@ -58,7 +58,7 @@ namespace Wodsoft.Protobuf.Generators
         /// <inheritdoc/>
         protected override void WriteValue(ref WriteContext writer, T[] value)
         {
-            var messsage = new ArrayMessage(value, _codeGenerator.CreateFieldCodec(1), WireFormat.MakeTag(1, _codeGenerator.WireType));
+            var messsage = new ArrayMessage(value, _CodeGenerator.CreateFieldCodec(1), WireFormat.MakeTag(1, _CodeGenerator.WireType));
             writer.WriteMessage(messsage);
             //var collection = new RepeatedField<T>();
             //collection.AddRange(value);

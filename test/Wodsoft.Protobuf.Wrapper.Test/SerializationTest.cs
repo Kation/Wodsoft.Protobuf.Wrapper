@@ -261,8 +261,10 @@ namespace Wodsoft.Protobuf.Wrapper.Test
             model.ShortMap["b"] = 456;
             model.StringArrayMap = new Dictionary<string, string[]>();
             model.StringArrayMap["a"] = new string[] { "a", "b", "c" };
+            model.StringArrayMap["b"] = new string[] { "e", "f", "g" };
             model.StringListMap = new Dictionary<string, List<string>>();
             model.StringListMap["a"] = new List<string> { "a", "b", "c" };
+            model.StringListMap["b"] = new List<string> { "e", "f", "g" };
 
 
             MemoryStream stream = new MemoryStream();
@@ -276,7 +278,45 @@ namespace Wodsoft.Protobuf.Wrapper.Test
             Assert.Equal<KeyValuePair<string, short?>>(model.ShortMap, model2.ShortMap);
             Assert.Equal(model.StringArrayMap.Count, model2.StringArrayMap.Count);
             Assert.Equal(model.StringArrayMap["a"], model2.StringArrayMap["a"]);
+            Assert.Equal(model.StringArrayMap["b"], model2.StringArrayMap["b"]);
             Assert.Equal(model.StringListMap["a"], model2.StringListMap["a"]);
+            Assert.Equal(model.StringListMap["b"], model2.StringListMap["b"]);
+        }
+
+        [Fact]
+        public void Dictionary_Value_Test()
+        {
+            var mode1 = new Dictionary<string, string>();
+            mode1["a"] = "1";
+            mode1["b"] = "2";
+
+            MemoryStream stream = new MemoryStream();
+            Message.Serialize(stream, mode1);
+
+            stream.Position = 0;
+            var model2 = Message<Dictionary<string, string>>.Deserialize(stream);
+
+            Assert.Equal(mode1.Count, model2.Count);
+            Assert.Equal(mode1["a"], model2["a"]);
+            Assert.Equal(mode1["b"], model2["b"]);
+        }
+
+        [Fact]
+        public void Dictionary_Value2_Test()
+        {
+            var mode1 = new Dictionary<string, string[]>();
+            mode1["a"] = new string[] { "a", "b", "c" };
+            mode1["b"] = new string[] { "e", "f", "g" };
+
+            MemoryStream stream = new MemoryStream();
+            Message.Serialize(stream, mode1);
+
+            stream.Position = 0;
+            var model2 = Message<Dictionary<string, string[]>>.Deserialize(stream);
+
+            Assert.Equal(mode1.Count, model2.Count);
+            Assert.Equal(mode1["a"], model2["a"]);
+            Assert.Equal(mode1["b"], model2["b"]);
         }
 
         [Fact]

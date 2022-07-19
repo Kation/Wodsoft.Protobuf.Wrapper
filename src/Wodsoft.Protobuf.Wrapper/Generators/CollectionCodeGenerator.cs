@@ -17,7 +17,7 @@ namespace Wodsoft.Protobuf.Generators
     public class CollectionCodeGenerator<T, TList> : NonstandardPrimitiveCodeGenerator<TList>
         where TList : IEnumerable<T>
     {
-        private readonly ICodeGenerator<T> _codeGenerator = MessageBuilder.GetCodeGenerator<T>();
+        private static readonly ICodeGenerator<T> _CodeGenerator = MessageBuilder.GetCodeGenerator<T>();
 
         /// <inheritdoc/>
         public override void GenerateReadCode(ILGenerator ilGenerator)
@@ -28,7 +28,7 @@ namespace Wodsoft.Protobuf.Generators
         /// <inheritdoc/>
         protected override int CalculateSize(TList value)
         {
-            var codec = _codeGenerator.CreateFieldCodec(1);
+            var codec = _CodeGenerator.CreateFieldCodec(1);
             var size = value.Sum(t => codec.CalculateSizeWithTag(t));
             var length = CodedOutputStream.ComputeLengthSize(size);
             return size + length;
@@ -52,7 +52,7 @@ namespace Wodsoft.Protobuf.Generators
             //var collection = new RepeatedField<T>();
             //collection.AddEntriesFrom(ref parser, _codeGenerator.CreateFieldCodec(2));
             //return collection.ToArray();
-            var messsage = new CollectionMessage(_codeGenerator.CreateFieldCodec(1), WireFormat.MakeTag(1, _codeGenerator.WireType));
+            var messsage = new CollectionMessage(_CodeGenerator.CreateFieldCodec(1), WireFormat.MakeTag(1, _CodeGenerator.WireType));
             parser.ReadMessage(messsage);
             return (TList)(object)messsage.ToList();
         }
@@ -60,7 +60,7 @@ namespace Wodsoft.Protobuf.Generators
         /// <inheritdoc/>
         protected override void WriteValue(ref WriteContext writer, TList value)
         {
-            var messsage = new CollectionMessage(value, _codeGenerator.CreateFieldCodec(1), WireFormat.MakeTag(1, _codeGenerator.WireType));
+            var messsage = new CollectionMessage(value, _CodeGenerator.CreateFieldCodec(1), WireFormat.MakeTag(1, _CodeGenerator.WireType));
             writer.WriteMessage(messsage);
             //var collection = new RepeatedField<T>();
             //collection.AddRange(value);
