@@ -20,6 +20,8 @@ namespace Wodsoft.Protobuf
     /// </summary>
     public class MessageBuilder
     {
+        internal static MethodInfo MergeFieldFromMethod = typeof(UnknownFieldSet).GetMethod("MergeFieldFrom", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(UnknownFieldSet), typeof(ParseContext).MakeByRefType() }, null);
+
         static MessageBuilder()
         {
             AssemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("Wodsoft.ComBoost.Grpc.Dynamic"), AssemblyBuilderAccess.Run);
@@ -415,6 +417,10 @@ namespace Wodsoft.Protobuf
                         }
                     }
                 }
+                readILGenerator.Emit(OpCodes.Ldnull);
+                readILGenerator.Emit(OpCodes.Ldarg_1);
+                readILGenerator.Emit(OpCodes.Call, MessageBuilder.MergeFieldFromMethod);
+                readILGenerator.Emit(OpCodes.Pop);
                 readILGenerator.Emit(OpCodes.Br, readWhileStart);
             }
 
