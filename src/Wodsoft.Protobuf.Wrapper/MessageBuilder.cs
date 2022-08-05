@@ -262,16 +262,16 @@ namespace Wodsoft.Protobuf
             ObjectCodeGenerator<T>.ComputeSize = messageType.GetMethod("ComputeSize");
             ObjectCodeGenerator<T>.EmptyConstructor = messageType.GetConstructor(Array.Empty<Type>());
             ObjectCodeGenerator<T>.WrapConstructor = messageType.GetConstructor(new Type[] { type });
-            Message<T>.MessageType = messageType;
             var finalType = messageType.AsType();
             {
                 Message<T>.GetMessageWithoutValue = Expression.Lambda<Func<Message<T>>>(Expression.New(finalType.GetConstructor(Array.Empty<Type>()))).Compile();
                 var valueParameter = Expression.Parameter(type, "value");
                 Message<T>.GetMessageWithValue = Expression.Lambda<Func<T, Message<T>>>(Expression.New(finalType.GetConstructor(new Type[] { type }), valueParameter), valueParameter).Compile();
             }
+            Message<T>.MessageType = messageType;
+            Type = finalType;
             foreach (var item in refTypes)
                 typeof(MessageBuilder<>).MakeGenericType(item).GetField("Type", BindingFlags.Public | BindingFlags.Static).GetValue(null);
-            Type = finalType;
         }
 
         private static void BuildEmptyConstructor(ConstructorBuilder constructor)
