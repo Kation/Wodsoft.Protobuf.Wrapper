@@ -45,6 +45,7 @@ namespace Wodsoft.Protobuf
             MessageBuilder<string>.CodeGenerator = new StringCodeGenerator();
             MessageBuilder<byte[]>.CodeGenerator = new ByteArrayCodeGenerator();
             MessageBuilder<ByteString>.CodeGenerator = new ByteStringCodeGenerator();
+            MessageBuilder<decimal>.CodeGenerator = new DecimalCodeGenerator();
 
             MessageBuilder<bool?>.CodeGenerator = new NullableCodeGenerator<bool>(new BooleanCodeGenerator());
             MessageBuilder<byte?>.CodeGenerator = new NullableCodeGenerator<byte>(new ByteCodeGenerator());
@@ -61,6 +62,7 @@ namespace Wodsoft.Protobuf
             MessageBuilder<DateTimeOffset?>.CodeGenerator = new NullableCodeGenerator<DateTimeOffset>(new DateTimeOffsetCodeGenerator());
             MessageBuilder<TimeSpan?>.CodeGenerator = new NullableCodeGenerator<TimeSpan>(new TimeSpanCodeGenerator());
             MessageBuilder<Guid?>.CodeGenerator = new NullableCodeGenerator<Guid>(new GuidCodeGenerator());
+            MessageBuilder<decimal?>.CodeGenerator = new NullableCodeGenerator<decimal>(new DecimalCodeGenerator());
         }
 
         internal static readonly AssemblyBuilder AssemblyBuilder;

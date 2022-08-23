@@ -35,7 +35,8 @@ namespace Wodsoft.Protobuf.Wrapper.Test
                 DateTimeOffset = new DateTimeOffset(2020, 6, 5, 23, 11, 2, TimeSpan.FromHours(8)),
                 TimeSpan = TimeSpan.FromHours(2.3),
                 BytesValue = new byte[] { 1, 2, 3, 4, 5 },
-                GuidValue = Guid.NewGuid()
+                GuidValue = Guid.NewGuid(),
+                DecimalValue = 1.2m
             };
 
             MemoryStream stream = new MemoryStream();
@@ -61,6 +62,7 @@ namespace Wodsoft.Protobuf.Wrapper.Test
             Assert.Equal(model.TimeSpan, model2.TimeSpan);
             Assert.Equal(model.BytesValue, model2.BytesValue);
             Assert.Equal(model.GuidValue, model2.GuidValue);
+            Assert.Equal(model.DecimalValue, model2.DecimalValue);
         }
 
         [Fact]

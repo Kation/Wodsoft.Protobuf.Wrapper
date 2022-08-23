@@ -39,5 +39,7 @@ namespace Wodsoft.Protobuf.Wrapper.Test
         public byte[] BytesValue { get; set; }
 
         public Guid GuidValue { get; set; }
+
+        public decimal DecimalValue { get; set; }
     }
 }

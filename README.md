@@ -150,6 +150,7 @@ Then `message` can be used in Protobuf serialization directly.
 | ulong(?) | uint64 | Varint |
 | float(?) | float | Varint |
 | double(?) | double | Varint |
+| decimal(?) | ByteString | Length-delimited |
 | string | string | Length-delimited |
 | byte[] | ByteString | Length-delimited |
 | Guid(?) | ByteString | Length-delimited |
