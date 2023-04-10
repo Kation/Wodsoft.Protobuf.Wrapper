@@ -49,7 +49,7 @@ namespace Wodsoft.Protobuf.Generators
         {
             ilGenerator.Emit(OpCodes.Ldarg_1);
             ilGenerator.Emit(OpCodes.Call, typeof(ParseContext).GetMethod(nameof(ParseContext.ReadBytes)));
-            ilGenerator.Emit(OpCodes.Call, typeof(ByteString).GetProperty("Span").GetGetMethod());            
+            ilGenerator.Emit(OpCodes.Call, typeof(ByteString).GetProperty("Span").GetGetMethod());
             ilGenerator.Emit(OpCodes.Call, _MemoryMarshalCast.MakeGenericMethod(typeof(byte), typeof(int)));
             var readOnlySpan = ilGenerator.DeclareLocal(typeof(ReadOnlySpan<int>));
             ilGenerator.Emit(OpCodes.Stloc, readOnlySpan);
@@ -73,7 +73,7 @@ namespace Wodsoft.Protobuf.Generators
             //Write bool value
             ilGenerator.Emit(OpCodes.Ldarg_1);
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
-            ilGenerator.Emit(OpCodes.Call, typeof(decimal).GetMethod("GetBits", BindingFlags.Public | BindingFlags.Static));
+            ilGenerator.Emit(OpCodes.Call, typeof(decimal).GetMethod("GetBits", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(decimal) }, null));
             ilGenerator.Emit(OpCodes.Call, typeof(ReadOnlySpan<int>).GetMethod("op_Implicit", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(int[]) }, null));
             ilGenerator.Emit(OpCodes.Call, _MemoryMarshalCast.MakeGenericMethod(typeof(int), typeof(byte)));
             ilGenerator.Emit(OpCodes.Call, typeof(ByteString).GetMethod("CopyFrom", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(ReadOnlySpan<byte>) }, null));
