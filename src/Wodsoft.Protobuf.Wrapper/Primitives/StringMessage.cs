@@ -41,5 +41,17 @@ namespace Wodsoft.Protobuf.Primitives
             if (SourceValue != null)
                 writer.WriteString(SourceValue);
         }
+
+        /// <summary>
+        /// Compute value size.
+        /// </summary>
+        /// <param name="value">value.</param>
+        /// <returns></returns>
+        public static int ComputeSize(string value)
+        {
+            if (value == null)
+                return 0;
+            return CodedOutputStream.ComputeStringSize(value);
+        }
     }
 }

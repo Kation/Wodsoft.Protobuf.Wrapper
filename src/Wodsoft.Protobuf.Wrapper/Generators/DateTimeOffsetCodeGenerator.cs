@@ -16,7 +16,7 @@ namespace Wodsoft.Protobuf.Generators
         public override WireFormat.WireType WireType => WireFormat.WireType.LengthDelimited;
 
         /// <inheritdoc/>
-        protected override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
+        public override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
             ilGenerator.Emit(OpCodes.Call, typeof(Google.Protobuf.WellKnownTypes.Timestamp).GetMethod("FromDateTimeOffset", BindingFlags.Public | BindingFlags.Static));
@@ -43,7 +43,7 @@ namespace Wodsoft.Protobuf.Generators
         }
 
         /// <inheritdoc/>
-        protected override void GenerateWriteValueCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
+        public override void GenerateWriteValueCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
             //Write DateTime value
             ilGenerator.Emit(OpCodes.Ldarg_1);

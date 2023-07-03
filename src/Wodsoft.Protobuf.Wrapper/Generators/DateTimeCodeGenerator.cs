@@ -16,7 +16,7 @@ namespace Wodsoft.Protobuf.Generators
         public override WireFormat.WireType WireType => WireFormat.WireType.LengthDelimited;
 
         /// <inheritdoc/>
-        protected override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
+        public override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
             var next = ilGenerator.DefineLabel();
             ilGenerator.Emit(OpCodes.Ldloca, valueVariable.LocalIndex);
@@ -54,7 +54,7 @@ namespace Wodsoft.Protobuf.Generators
         }
 
         /// <inheritdoc/>
-        protected override void GenerateWriteValueCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
+        public override void GenerateWriteValueCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
             //Write DateTime value
             var next = ilGenerator.DefineLabel();

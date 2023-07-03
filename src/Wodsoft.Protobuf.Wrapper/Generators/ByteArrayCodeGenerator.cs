@@ -33,7 +33,7 @@ namespace Wodsoft.Protobuf.Generators
         }
 
         /// <inheritdoc/>
-        protected override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
+        public override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
             ilGenerator.Emit(OpCodes.Newobj, typeof(ReadOnlyMemory<byte>).GetConstructor(new Type[] { typeof(byte[]) }));
@@ -85,7 +85,7 @@ namespace Wodsoft.Protobuf.Generators
         }
 
         /// <inheritdoc/>
-        protected override void GenerateWriteValueCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
+        public override void GenerateWriteValueCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
             //Write bool value
             ilGenerator.Emit(OpCodes.Ldarg_1);

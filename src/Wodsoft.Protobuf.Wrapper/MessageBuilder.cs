@@ -97,7 +97,15 @@ namespace Wodsoft.Protobuf
 
         internal static bool TryGetCodeGenerator(Type type, out ICodeGenerator codeGenerator)
         {
-            codeGenerator = (ICodeGenerator)typeof(MessageBuilder<>).MakeGenericType(type).GetField("CodeGenerator").GetValue(null);
+            bool isEnum = type.IsEnum;
+            if (isEnum)
+            {
+                codeGenerator = (ICodeGenerator)typeof(MessageBuilder<>).MakeGenericType(Enum.GetUnderlyingType(type)).GetField("CodeGenerator").GetValue(null);
+                var enumCodeGenerator = Activator.CreateInstance(typeof(EnumCodeGenerator<,>).MakeGenericType(type, Enum.GetUnderlyingType(type)), codeGenerator);
+                typeof(MessageBuilder<>).MakeGenericType(type).GetField("CodeGenerator").SetValue(null, enumCodeGenerator);
+            }
+            else
+                codeGenerator = (ICodeGenerator)typeof(MessageBuilder<>).MakeGenericType(type).GetField("CodeGenerator").GetValue(null);
             return codeGenerator != null;
         }
 

@@ -49,5 +49,15 @@ namespace Wodsoft.Protobuf.Primitives
         {
             _CodeGenerator.WriteValue(ref writer, SourceValue);
         }
+
+        /// <summary>
+        /// Compute value size.
+        /// </summary>
+        /// <param name="value">value.</param>
+        /// <returns></returns>
+        public static int ComputeSize(T value)
+        {
+            return _CodeGenerator.CalculateSize(value);
+        }
     }
 }

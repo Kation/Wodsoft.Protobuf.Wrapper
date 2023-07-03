@@ -44,5 +44,15 @@ namespace Wodsoft.Protobuf.Primitives
         {
             _CodeGenerator.WriteValue(ref writer, (TValue)Convert.ChangeType(SourceValue, typeof(TValue)));
         }
+
+        /// <summary>
+        /// Compute value size.
+        /// </summary>
+        /// <param name="value">value.</param>
+        /// <returns></returns>
+        public static int ComputeSize(TEnum value)
+        {
+            return _CodeGenerator.CalculateSize((TValue)Convert.ChangeType(value, typeof(TValue)));
+        }
     }
 }

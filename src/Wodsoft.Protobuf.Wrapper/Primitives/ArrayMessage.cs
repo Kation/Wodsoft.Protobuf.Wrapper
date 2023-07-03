@@ -66,5 +66,17 @@ namespace Wodsoft.Protobuf.Primitives
                     _FieldCodec.WriteTagAndValue(ref writer, SourceValue[i]);
             }
         }
+
+        /// <summary>
+        /// Compute value size.
+        /// </summary>
+        /// <param name="value">value.</param>
+        /// <returns></returns>
+        public static int ComputeSize(T[] value)
+        {
+            if (value != null)
+                return value.Sum(t => _FieldCodec.CalculateSizeWithTag(t));
+            return 0;
+        }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Google.Protobuf;
+using Google.Protobuf.WellKnownTypes;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -43,6 +44,16 @@ namespace Wodsoft.Protobuf.Primitives
                 bufferMessage.InternalWriteTo(ref writer);
             else
                 writer.WriteMessage(SourceValue);
+        }
+
+        /// <summary>
+        /// Compute value size.
+        /// </summary>
+        /// <param name="value">value.</param>
+        /// <returns></returns>
+        public static int ComputeSize(T value)
+        {
+            return value.CalculateSize();
         }
     }
 }

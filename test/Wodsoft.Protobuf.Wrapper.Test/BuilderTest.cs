@@ -24,10 +24,16 @@ namespace Wodsoft.Protobuf.Wrapper.Test
             MessageBuilder.GetMessageType<ObjectDictionaryModel>();
             MessageBuilder.GetMessageType<PointModel>();
             MessageBuilder.GetMessageType<ValueConstructorModel>();
+            MessageBuilder.GetMessageType<EnumArrayModel>();
 
             var generator = new Lokad.ILPack.AssemblyGenerator();
             var bytes = generator.GenerateAssemblyBytes(MessageBuilder.GetAssembly());
             File.WriteAllBytes("dynamic.dll", bytes);
+
+            ByteEnum e = ByteEnum.One;
+            byte bytea = (byte)e;
+            ByteEnum d = (ByteEnum)bytea;
+            Console.WriteLine(d);            
         }
     }
 }

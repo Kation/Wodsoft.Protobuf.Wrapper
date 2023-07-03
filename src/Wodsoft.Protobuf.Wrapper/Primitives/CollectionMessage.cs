@@ -1,6 +1,7 @@
 ﻿using Google.Protobuf;
 using Google.Protobuf.Collections;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -70,6 +71,18 @@ namespace Wodsoft.Protobuf.Primitives
                 for (int i = 0; i < SourceValue.Count; i++)
                     _FieldCodec.WriteTagAndValue(ref writer, SourceValue[i]);
             }
+        }
+
+        /// <summary>
+        /// Compute value size.
+        /// </summary>
+        /// <param name="value">value.</param>
+        /// <returns></returns>
+        public static int ComputeSize(TCollection value)
+        {
+            if (value != null)
+                return value.Sum(t => _FieldCodec.CalculateSizeWithTag(t));
+            return 0;
         }
     }
 }

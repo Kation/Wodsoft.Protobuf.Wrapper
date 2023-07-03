@@ -32,5 +32,10 @@ namespace Wodsoft.Protobuf.Generators
         /// <param name="writer">Protobuf write context.</param>
         /// <param name="value">Value of <typeparamref name="T"/>.</param>
         public abstract void WriteValue(ref WriteContext writer, T value);
+
+        /// <summary>
+        /// Get or set the type of code generator is a enum type.
+        /// </summary>
+        public bool IsEnum { get; set; }
     }
 }

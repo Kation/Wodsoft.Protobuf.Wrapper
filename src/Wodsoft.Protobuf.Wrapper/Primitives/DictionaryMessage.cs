@@ -1,6 +1,7 @@
 ﻿using Google.Protobuf;
 using Google.Protobuf.Collections;
 using Google.Protobuf.Reflection;
+using Google.Protobuf.WellKnownTypes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -119,6 +120,20 @@ namespace Wodsoft.Protobuf.Primitives
                     writer.WriteMessage(message);
                 }
             }
+        }
+
+        /// <summary>
+        /// Compute value size.
+        /// </summary>
+        /// <param name="value">value.</param>
+        /// <returns></returns>
+        public static int ComputeSize(TDictionary value)
+        {
+            if (value != null)
+            {
+                var size = value.Sum(t => new DictionaryItemMessage(t).CalculateSize());
+            }
+            return 0;
         }
 
         private class DictionaryItemMessage : IMessage, IBufferMessage

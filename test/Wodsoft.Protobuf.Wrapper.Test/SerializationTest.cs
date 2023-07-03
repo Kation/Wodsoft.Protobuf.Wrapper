@@ -178,6 +178,22 @@ namespace Wodsoft.Protobuf.Wrapper.Test
         }
 
         [Fact]
+        public void Enum_Array_Test()
+        {
+            EnumArrayModel model = new EnumArrayModel
+            {
+                Bytes = new ByteEnum[] { ByteEnum.Normal, ByteEnum.Two }
+            };
+            MemoryStream stream = new MemoryStream();
+            Message.Serialize(stream, model);
+            var data = stream.ToArray();
+            stream.Position = 0;
+            var model2 = Message<EnumArrayModel>.Deserialize(stream);
+
+            Assert.Equal(model.Bytes, (IEnumerable<ByteEnum>)model2.Bytes);
+        }
+
+        [Fact]
         public void Collection_Class_Test()
         {
             CollectionModel model = new CollectionModel();

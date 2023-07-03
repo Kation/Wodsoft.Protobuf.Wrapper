@@ -47,7 +47,7 @@ namespace Wodsoft.Protobuf.Generators
         }
 
         /// <inheritdoc/>
-        protected override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
+        public override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
 
         }
@@ -84,7 +84,7 @@ namespace Wodsoft.Protobuf.Generators
         }
 
         /// <inheritdoc/>
-        protected override void GenerateWriteValueCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
+        public override void GenerateWriteValueCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
 
         }

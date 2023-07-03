@@ -27,6 +27,15 @@ namespace Wodsoft.Protobuf
         void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable, int fieldNumber);
 
         /// <summary>
+        /// Generate IL code that calculate value's size.<br/>
+        /// Not include field length.<br/>
+        /// There must be a INT32 value on the top of stack.
+        /// </summary>
+        /// <param name="ilGenerator">IL generator.</param>
+        /// <param name="valueVariable">Local variable of value.</param>
+        void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable);
+
+        /// <summary>
         /// Generate IL code that write tag and value use WriteContext.<br/>
         /// ref WriteContext is at argument 1(OpCodes.Ldarg_1).<br/>
         /// It should be empty in the stack after codes.
@@ -35,6 +44,15 @@ namespace Wodsoft.Protobuf
         /// <param name="valueVariable">Local variable of value.</param>
         /// <param name="fieldNumber">Field Number.</param>
         void GenerateWriteCode(ILGenerator ilGenerator, LocalBuilder valueVariable, int fieldNumber);
+
+        /// <summary>
+        /// Generate IL code that write value use WriteContext.<br/>
+        /// ref WriteContext is at argument 1(OpCodes.Ldarg_1).<br/>
+        /// It should be empty in the stack after codes.
+        /// </summary>
+        /// <param name="ilGenerator">IL generator.</param>
+        /// <param name="valueVariable">Local variable of value.</param>
+        void GenerateWriteValueCode(ILGenerator ilGenerator, LocalBuilder valueVariable);
 
         /// <summary>
         /// Generate IL code that read value use ParseContext.<br/>

@@ -49,5 +49,17 @@ namespace Wodsoft.Protobuf.Primitives
                 message.InternalWriteTo(ref writer);
             }
         }
+
+        /// <summary>
+        /// Compute value size.
+        /// </summary>
+        /// <param name="value">value.</param>
+        /// <returns></returns>
+        public static int ComputeSize(T? value)
+        {
+            if (value.HasValue)
+                return ((IMessage)((Message<T>)value.Value)).CalculateSize();
+            return 0;
+        }
     }
 }

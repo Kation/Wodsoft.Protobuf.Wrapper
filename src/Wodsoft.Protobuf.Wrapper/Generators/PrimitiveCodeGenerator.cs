@@ -42,11 +42,12 @@ namespace Wodsoft.Protobuf.Generators
 
         /// <summary>
         /// Generate IL code that calculate value's size.<br/>
+        /// Not include filed length.<br/>
         /// There must be a INT32 value on the top of stack.
         /// </summary>
         /// <param name="ilGenerator">IL generator.</param>
         /// <param name="valueVariable">Local variable of value.</param>
-        protected abstract void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable);
+        public abstract void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable);
 
         /// <summary>
         /// Generate IL code that read value use ParseContext.<br/>
@@ -92,6 +93,6 @@ namespace Wodsoft.Protobuf.Generators
         /// </summary>
         /// <param name="ilGenerator">IL generator.</param>
         /// <param name="valueVariable">Local variable of value.</param>
-        protected abstract void GenerateWriteValueCode(ILGenerator ilGenerator, LocalBuilder valueVariable);
+        public abstract void GenerateWriteValueCode(ILGenerator ilGenerator, LocalBuilder valueVariable);
     }
 }
