@@ -168,7 +168,13 @@ namespace Wodsoft.Protobuf
                 staticILGenerator.Emit(OpCodes.Castclass, typeof(MethodInfo));
                 staticILGenerator.Emit(OpCodes.Call, typeof(Delegate).GetMethod(nameof(Delegate.CreateDelegate), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(Type), typeof(MethodInfo) }, null));
                 staticILGenerator.Emit(OpCodes.Newobj, typeof(MessageParser<>).MakeGenericType(elementType).GetConstructor(new Type[] { typeof(Func<>).MakeGenericType(elementType) }));
-                staticILGenerator.Emit(OpCodes.Call, typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForMessage)).MakeGenericMethod(elementType));
+#if NETSTANDARD2_1
+                staticILGenerator.Emit(OpCodes.Call, typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForMessage), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(uint), typeof(MessageParser<>).MakeGenericType(Type.MakeGenericMethodParameter(0)) }, null).MakeGenericMethod(elementType));
+#else
+                staticILGenerator.Emit(OpCodes.Call, typeof(FieldCodec).GetMethods().First(t => t.Name == nameof(FieldCodec.ForMessage)
+                    && t.GetParameters().Length == 2 && t.GetParameters()[0].ParameterType == typeof(uint)
+                    && t.GetParameters()[1].ParameterType.IsGenericType && t.GetParameters()[1].ParameterType.GetGenericTypeDefinition() == typeof(MessageParser<>)).MakeGenericMethod(elementType));
+#endif
             }
             else
             {
@@ -204,13 +210,13 @@ namespace Wodsoft.Protobuf
             //IL: collection.Clear();
             ilGenerator.Emit(OpCodes.Ldarg_0);
             ilGenerator.Emit(OpCodes.Ldfld, field);
-            ilGenerator.Emit(OpCodes.Call, field.FieldType.GetMethod("Clear"));
+            ilGenerator.Emit(OpCodes.Call, field.FieldType.GetMethod("Clear", Array.Empty<Type>()));
 
             //IL: collection.AddRange(value);
             ilGenerator.Emit(OpCodes.Ldarg_0);
             ilGenerator.Emit(OpCodes.Ldfld, field);
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
-            ilGenerator.Emit(OpCodes.Call, field.FieldType.GetMethod("AddRange"));
+            ilGenerator.Emit(OpCodes.Call, field.FieldType.GetMethods().First(t => t.Name == "AddRange" && t.GetParameters().Length == 1 && t.GetParameters()[0].ParameterType.IsGenericType && t.GetParameters()[0].ParameterType.GetGenericTypeDefinition() == typeof(IEnumerable<>)));
 
             ilGenerator.MarkLabel(skip);
         }
@@ -227,12 +233,12 @@ namespace Wodsoft.Protobuf
             //IL: dictionary.Clear();
             ilGenerator.Emit(OpCodes.Ldarg_0);
             ilGenerator.Emit(OpCodes.Ldfld, field);
-            ilGenerator.Emit(OpCodes.Call, field.FieldType.GetMethod("Clear"));
+            ilGenerator.Emit(OpCodes.Call, field.FieldType.GetMethod("Clear", Array.Empty<Type>()));
             //IL: dictionary.Add(value);
             ilGenerator.Emit(OpCodes.Ldarg_0);
             ilGenerator.Emit(OpCodes.Ldfld, field);
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
-            ilGenerator.Emit(OpCodes.Call, field.FieldType.GetMethods().Where(t => t.Name == "Add").OrderBy(t => t.GetParameters().Length).First());
+            ilGenerator.Emit(OpCodes.Call, field.FieldType.GetMethods().First(t => t.Name == "Add" && t.GetParameters().Length == 1));
 
             ilGenerator.MarkLabel(skip);
         }
@@ -373,7 +379,7 @@ namespace Wodsoft.Protobuf
             {
                 readILGenerator.MarkLabel(readWhileStart);
                 readILGenerator.Emit(OpCodes.Ldarg_1);
-                readILGenerator.Emit(OpCodes.Call, typeof(ParseContext).GetMethod("ReadTag"));
+                readILGenerator.Emit(OpCodes.Call, typeof(ParseContext).GetMethod(nameof(ParseContext.ReadTag), Array.Empty<Type>()));
                 readILGenerator.Emit(OpCodes.Stloc, readTagVariable);
 
                 readILGenerator.Emit(OpCodes.Ldloc, readTagVariable);
@@ -872,7 +878,7 @@ namespace Wodsoft.Protobuf
 
                                     writeILGenerator.Emit(OpCodes.Ldarg_1);
                                     writeILGenerator.Emit(OpCodes.Ldloc, writeValueVariable);
-                                    writeILGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod(nameof(WriteContext.WriteMessage)));
+                                    writeILGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod(nameof(WriteContext.WriteMessage), new Type[] { typeof(IMessage) }));
                                 }
                                 //Read
                                 {
@@ -895,7 +901,7 @@ namespace Wodsoft.Protobuf
                                     readILGenerator.MarkLabel(afterNew);
                                     readILGenerator.Emit(OpCodes.Ldarg_1);
                                     readILGenerator.Emit(OpCodes.Ldloc, valueVariable);
-                                    readILGenerator.Emit(OpCodes.Call, typeof(ParseContext).GetMethod(nameof(ParseContext.ReadMessage)));
+                                    readILGenerator.Emit(OpCodes.Call, typeof(ParseContext).GetMethod(nameof(ParseContext.ReadMessage), new Type[] { typeof(IMessage) }));
 
                                     readILGenerator.Emit(OpCodes.Ldarg_0);
                                     readILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);

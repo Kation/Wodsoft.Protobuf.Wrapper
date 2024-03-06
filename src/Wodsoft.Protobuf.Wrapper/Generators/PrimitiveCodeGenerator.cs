@@ -83,7 +83,7 @@ namespace Wodsoft.Protobuf.Generators
             //Write tag
             ilGenerator.Emit(OpCodes.Ldarg_1);
             ilGenerator.Emit(OpCodes.Ldc_I4, (int)WireFormat.MakeTag(fieldNumber, WireType));
-            ilGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod("WriteTag", BindingFlags.Instance | BindingFlags.Public, null, new Type[] { typeof(uint) }, null));
+            ilGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod(nameof(WriteContext.WriteTag), BindingFlags.Instance | BindingFlags.Public, null, new Type[] { typeof(uint) }, null));
         }
 
         /// <summary>

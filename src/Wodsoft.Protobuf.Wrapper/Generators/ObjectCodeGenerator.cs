@@ -49,7 +49,7 @@ namespace Wodsoft.Protobuf.Generators
             //ilGenerator.Emit(OpCodes.Stloc, lengthVariable);
             //ilGenerator.Emit(OpCodes.Ldloc, lengthVariable);
             //ilGenerator.Emit(OpCodes.Ldloc, lengthVariable);
-            ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeLengthSize), BindingFlags.Public | BindingFlags.Static));
+            ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeLengthSize), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(int) }, null));
             ilGenerator.Emit(OpCodes.Add_Ovf);
             ilGenerator.Emit(OpCodes.Ldc_I4, CodedOutputStream.ComputeTagSize(fieldNumber));
             ilGenerator.Emit(OpCodes.Add_Ovf);
@@ -76,7 +76,7 @@ namespace Wodsoft.Protobuf.Generators
             ilGenerator.Emit(OpCodes.Stloc, valueVariable);
             ilGenerator.Emit(OpCodes.Ldarg_1);
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
-            ilGenerator.Emit(OpCodes.Call, typeof(ParseContext).GetMethod(nameof(ParseContext.ReadMessage)));
+            ilGenerator.Emit(OpCodes.Call, typeof(ParseContext).GetMethod(nameof(ParseContext.ReadMessage), new Type[] { typeof(IMessage) }));
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
             ilGenerator.Emit(OpCodes.Call, messageType.GetProperty("Source").GetMethod);
         }
@@ -96,7 +96,7 @@ namespace Wodsoft.Protobuf.Generators
                 ilGenerator.Emit(OpCodes.Stloc, lengthVariable);
                 ilGenerator.Emit(OpCodes.Ldloc, lengthVariable);
                 ilGenerator.Emit(OpCodes.Ldloc, lengthVariable);
-                ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeLengthSize), BindingFlags.Public | BindingFlags.Static));
+                ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeLengthSize), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(int) }, null));
                 ilGenerator.Emit(OpCodes.Add_Ovf);
                 ilGenerator.Emit(OpCodes.Ret);
 
@@ -126,7 +126,7 @@ namespace Wodsoft.Protobuf.Generators
             ilGenerator.Emit(OpCodes.Ldarg_1);
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
             ilGenerator.Emit(OpCodes.Newobj, constructor);
-            ilGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod(nameof(WriteContext.WriteMessage)));
+            ilGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod(nameof(WriteContext.WriteMessage), new Type[] { typeof(IMessage) }));
         }
 
         /// <inheritdoc/>

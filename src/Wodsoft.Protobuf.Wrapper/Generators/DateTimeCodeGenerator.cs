@@ -24,12 +24,12 @@ namespace Wodsoft.Protobuf.Generators
             ilGenerator.Emit(OpCodes.Ldc_I4, (int)DateTimeKind.Utc);
             ilGenerator.Emit(OpCodes.Beq, next);
             ilGenerator.Emit(OpCodes.Ldloca, valueVariable.LocalIndex);
-            ilGenerator.Emit(OpCodes.Call, typeof(DateTime).GetMethod("ToUniversalTime"));
+            ilGenerator.Emit(OpCodes.Call, typeof(DateTime).GetMethod(nameof(DateTime.ToUniversalTime), Array.Empty<Type>()));
             ilGenerator.Emit(OpCodes.Stloc, valueVariable);
             ilGenerator.MarkLabel(next);
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
-            ilGenerator.Emit(OpCodes.Call, typeof(Google.Protobuf.WellKnownTypes.Timestamp).GetMethod("FromDateTime", BindingFlags.Public | BindingFlags.Static));
-            ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeMessageSize), BindingFlags.Static | BindingFlags.Public));
+            ilGenerator.Emit(OpCodes.Call, typeof(Google.Protobuf.WellKnownTypes.Timestamp).GetMethod(nameof(Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(DateTime) }, null));
+            ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeMessageSize), BindingFlags.Static | BindingFlags.Public, null, new Type[] { typeof(IMessage) }, null));
         }
 
         /// <inheritdoc/>
@@ -42,7 +42,7 @@ namespace Wodsoft.Protobuf.Generators
             ilGenerator.Emit(OpCodes.Ldloc, value);
             ilGenerator.Emit(OpCodes.Call, typeof(ParseContext).GetMethod(nameof(ParseContext.ReadMessage)));
             ilGenerator.Emit(OpCodes.Ldloc, value);
-            ilGenerator.Emit(OpCodes.Call, typeof(Google.Protobuf.WellKnownTypes.Timestamp).GetMethod("ToDateTime"));
+            ilGenerator.Emit(OpCodes.Call, typeof(Google.Protobuf.WellKnownTypes.Timestamp).GetMethod(nameof(Google.Protobuf.WellKnownTypes.Timestamp.ToDateTime), Array.Empty<Type>()));
         }
 
         /// <inheritdoc/>
@@ -63,13 +63,13 @@ namespace Wodsoft.Protobuf.Generators
             ilGenerator.Emit(OpCodes.Ldc_I4, (int)DateTimeKind.Utc);
             ilGenerator.Emit(OpCodes.Beq, next);
             ilGenerator.Emit(OpCodes.Ldloca, valueVariable.LocalIndex);
-            ilGenerator.Emit(OpCodes.Call, typeof(DateTime).GetMethod("ToUniversalTime"));
+            ilGenerator.Emit(OpCodes.Call, typeof(DateTime).GetMethod(nameof(DateTime.ToUniversalTime), Array.Empty<Type>()));
             ilGenerator.Emit(OpCodes.Stloc, valueVariable);
             ilGenerator.MarkLabel(next);
             ilGenerator.Emit(OpCodes.Ldarg_1);
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
-            ilGenerator.Emit(OpCodes.Call, typeof(Google.Protobuf.WellKnownTypes.Timestamp).GetMethod("FromDateTime", BindingFlags.Public | BindingFlags.Static));
-            ilGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod(nameof(WriteContext.WriteMessage)));
+            ilGenerator.Emit(OpCodes.Call, typeof(Google.Protobuf.WellKnownTypes.Timestamp).GetMethod(nameof(Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(DateTime) }, null));
+            ilGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod(nameof(WriteContext.WriteMessage), new Type[] { typeof(IMessage) }));
         }
 
         /// <inheritdoc/>

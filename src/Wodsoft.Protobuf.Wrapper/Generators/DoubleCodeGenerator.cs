@@ -28,14 +28,14 @@ namespace Wodsoft.Protobuf.Generators
         public override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
-            ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeDoubleSize), BindingFlags.Static | BindingFlags.Public));
+            ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeDoubleSize), BindingFlags.Static | BindingFlags.Public, null, new Type[] { typeof(double) }, null));
         }
 
         /// <inheritdoc/>
         public override void GenerateReadCode(ILGenerator ilGenerator)
         {
             ilGenerator.Emit(OpCodes.Ldarg_1);
-            ilGenerator.Emit(OpCodes.Call, typeof(ParseContext).GetMethod(nameof(ParseContext.ReadDouble)));
+            ilGenerator.Emit(OpCodes.Call, typeof(ParseContext).GetMethod(nameof(ParseContext.ReadDouble), Array.Empty<Type>()));
         }
 
         /// <inheritdoc/>
@@ -56,7 +56,7 @@ namespace Wodsoft.Protobuf.Generators
             //Write bool value
             ilGenerator.Emit(OpCodes.Ldarg_1);
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
-            ilGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod(nameof(WriteContext.WriteDouble)));
+            ilGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod(nameof(WriteContext.WriteDouble), new Type[] { typeof(double) }));
         }
     }
 }

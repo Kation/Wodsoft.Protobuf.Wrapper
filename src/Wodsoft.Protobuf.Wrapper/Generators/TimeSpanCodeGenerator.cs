@@ -19,8 +19,8 @@ namespace Wodsoft.Protobuf.Generators
         public override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
-            ilGenerator.Emit(OpCodes.Call, typeof(Google.Protobuf.WellKnownTypes.Duration).GetMethod("FromTimeSpan", BindingFlags.Public | BindingFlags.Static));
-            ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeMessageSize), BindingFlags.Static | BindingFlags.Public));
+            ilGenerator.Emit(OpCodes.Call, typeof(Google.Protobuf.WellKnownTypes.Duration).GetMethod(nameof(Google.Protobuf.WellKnownTypes.Duration.FromTimeSpan), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(TimeSpan) }, null));
+            ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeMessageSize), BindingFlags.Static | BindingFlags.Public, null, new Type[] { typeof(IMessage) }, null));
         }
 
         /// <inheritdoc/>
@@ -31,14 +31,14 @@ namespace Wodsoft.Protobuf.Generators
             ilGenerator.Emit(OpCodes.Stloc, value);
             ilGenerator.Emit(OpCodes.Ldarg_1);
             ilGenerator.Emit(OpCodes.Ldloc, value);
-            ilGenerator.Emit(OpCodes.Call, typeof(ParseContext).GetMethod(nameof(ParseContext.ReadMessage)));
+            ilGenerator.Emit(OpCodes.Call, typeof(ParseContext).GetMethod(nameof(ParseContext.ReadMessage), new Type[] { typeof(IMessage) }));
             ilGenerator.Emit(OpCodes.Ldloc, value);
-            ilGenerator.Emit(OpCodes.Call, typeof(Google.Protobuf.WellKnownTypes.Duration).GetMethod("ToTimeSpan"));
+            ilGenerator.Emit(OpCodes.Call, typeof(Google.Protobuf.WellKnownTypes.Duration).GetMethod(nameof(Google.Protobuf.WellKnownTypes.Duration.ToTimeSpan), Array.Empty<Type>()));
         }
 
         /// <inheritdoc/>
         protected override int CalculateSize(TimeSpan value)
-        {            
+        {
             return CodedOutputStream.ComputeMessageSize(Google.Protobuf.WellKnownTypes.Duration.FromTimeSpan(value));
         }
 
@@ -48,8 +48,8 @@ namespace Wodsoft.Protobuf.Generators
             //Write DateTime value
             ilGenerator.Emit(OpCodes.Ldarg_1);
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
-            ilGenerator.Emit(OpCodes.Call, typeof(Google.Protobuf.WellKnownTypes.Duration).GetMethod("FromTimeSpan", BindingFlags.Public | BindingFlags.Static));
-            ilGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod(nameof(WriteContext.WriteMessage)));
+            ilGenerator.Emit(OpCodes.Call, typeof(Google.Protobuf.WellKnownTypes.Duration).GetMethod(nameof(Google.Protobuf.WellKnownTypes.Duration.FromTimeSpan), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(TimeSpan) }, null));
+            ilGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod(nameof(WriteContext.WriteMessage), new Type[] { typeof(IMessage) }));
         }
 
         /// <inheritdoc/>

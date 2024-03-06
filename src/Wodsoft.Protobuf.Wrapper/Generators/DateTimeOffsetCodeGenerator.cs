@@ -19,8 +19,8 @@ namespace Wodsoft.Protobuf.Generators
         public override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
-            ilGenerator.Emit(OpCodes.Call, typeof(Google.Protobuf.WellKnownTypes.Timestamp).GetMethod("FromDateTimeOffset", BindingFlags.Public | BindingFlags.Static));
-            ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeMessageSize), BindingFlags.Static | BindingFlags.Public));
+            ilGenerator.Emit(OpCodes.Call, typeof(Google.Protobuf.WellKnownTypes.Timestamp).GetMethod(nameof(Google.Protobuf.WellKnownTypes.Timestamp.FromDateTimeOffset), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(DateTimeOffset) }, null));
+            ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeMessageSize), BindingFlags.Static | BindingFlags.Public, null, new Type[] { typeof(IMessage) }, null));
         }
 
         /// <inheritdoc/>
@@ -33,12 +33,12 @@ namespace Wodsoft.Protobuf.Generators
             ilGenerator.Emit(OpCodes.Ldloc, value);
             ilGenerator.Emit(OpCodes.Call, typeof(ParseContext).GetMethod(nameof(ParseContext.ReadMessage)));
             ilGenerator.Emit(OpCodes.Ldloc, value);
-            ilGenerator.Emit(OpCodes.Call, typeof(Google.Protobuf.WellKnownTypes.Timestamp).GetMethod("ToDateTimeOffset"));
+            ilGenerator.Emit(OpCodes.Call, typeof(Google.Protobuf.WellKnownTypes.Timestamp).GetMethod(nameof(Google.Protobuf.WellKnownTypes.Timestamp.ToDateTimeOffset), Array.Empty<Type>()));
         }
 
         /// <inheritdoc/>
         protected override int CalculateSize(DateTimeOffset value)
-        {            
+        {
             return CodedOutputStream.ComputeMessageSize(Google.Protobuf.WellKnownTypes.Timestamp.FromDateTimeOffset(value));
         }
 
@@ -48,8 +48,8 @@ namespace Wodsoft.Protobuf.Generators
             //Write DateTime value
             ilGenerator.Emit(OpCodes.Ldarg_1);
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
-            ilGenerator.Emit(OpCodes.Call, typeof(Google.Protobuf.WellKnownTypes.Timestamp).GetMethod("FromDateTimeOffset", BindingFlags.Public | BindingFlags.Static));
-            ilGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod(nameof(WriteContext.WriteMessage)));
+            ilGenerator.Emit(OpCodes.Call, typeof(Google.Protobuf.WellKnownTypes.Timestamp).GetMethod(nameof(Google.Protobuf.WellKnownTypes.Timestamp.FromDateTimeOffset), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(DateTimeOffset) }, null));
+            ilGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod(nameof(WriteContext.WriteMessage), new Type[] { typeof(IMessage) }));
         }
 
         /// <inheritdoc/>

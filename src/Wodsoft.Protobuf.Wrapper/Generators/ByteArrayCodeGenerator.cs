@@ -1,6 +1,7 @@
 ﻿using Google.Protobuf;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.InteropServices;
@@ -37,8 +38,8 @@ namespace Wodsoft.Protobuf.Generators
         {
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
             ilGenerator.Emit(OpCodes.Newobj, typeof(ReadOnlyMemory<byte>).GetConstructor(new Type[] { typeof(byte[]) }));
-            ilGenerator.Emit(OpCodes.Call, typeof(UnsafeByteOperations).GetMethod("UnsafeWrap", BindingFlags.Public | BindingFlags.Static));
-            ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeBytesSize), BindingFlags.Static | BindingFlags.Public));
+            ilGenerator.Emit(OpCodes.Call, typeof(UnsafeByteOperations).GetMethod(nameof(UnsafeByteOperations.UnsafeWrap), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(ReadOnlyMemory<byte>) }, null));
+            ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeBytesSize), BindingFlags.Static | BindingFlags.Public, null, new Type[] { typeof(ByteString) }, null));
         }
 
         /// <inheritdoc/>
@@ -49,15 +50,23 @@ namespace Wodsoft.Protobuf.Generators
             var hasArrayLabel = ilGenerator.DefineLabel();
             var endIfLabel = ilGenerator.DefineLabel();
             ilGenerator.Emit(OpCodes.Ldarg_1);
-            ilGenerator.Emit(OpCodes.Call, typeof(ParseContext).GetMethod(nameof(ParseContext.ReadBytes)));
+            ilGenerator.Emit(OpCodes.Call, typeof(ParseContext).GetMethod(nameof(ParseContext.ReadBytes), Array.Empty<Type>()));
             ilGenerator.Emit(OpCodes.Stloc, bytesLocal);
             ilGenerator.Emit(OpCodes.Ldloc, bytesLocal);
             ilGenerator.Emit(OpCodes.Call, typeof(ByteString).GetProperty("Memory").GetMethod);
             ilGenerator.Emit(OpCodes.Ldloca, segmentLocal);
-            ilGenerator.Emit(OpCodes.Call, typeof(MemoryMarshal).GetMethod("TryGetArray", BindingFlags.Public | BindingFlags.Static).MakeGenericMethod(typeof(byte)));
+#if NETSTANDARD2_1
+            ilGenerator.Emit(OpCodes.Call, typeof(MemoryMarshal).GetMethod(nameof(MemoryMarshal.TryGetArray), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(ReadOnlyMemory<>).MakeGenericType(Type.MakeGenericMethodParameter(0)), typeof(ArraySegment<>).MakeGenericType(Type.MakeGenericMethodParameter(0)).MakeByRefType() }, null).MakeGenericMethod(typeof(byte)));
+#else
+ilGenerator.Emit(OpCodes.Call, typeof(MemoryMarshal).GetMethods()
+    .First(t=>t.Name == nameof(MemoryMarshal.TryGetArray)
+        && t.IsGenericMethodDefinition && t.GetGenericArguments().Length == 1 && t.GetParameters().Length == 2
+        && t.GetParameters()[0].ParameterType.IsGenericTypeDefinition && t.GetParameters()[0].ParameterType.GetGenericTypeDefinition() == typeof(ReadOnlyMemory<>)
+        && t.GetParameters()[1].ParameterType.IsGenericTypeDefinition && t.GetParameters()[1].ParameterType.GetGenericTypeDefinition() == typeof(ArraySegment<>)).MakeGenericMethod(typeof(byte)));
+#endif
             ilGenerator.Emit(OpCodes.Brtrue_S, hasArrayLabel);
             ilGenerator.Emit(OpCodes.Ldloc, bytesLocal);
-            ilGenerator.Emit(OpCodes.Call, typeof(ByteString).GetMethod("ToByteArray"));
+            ilGenerator.Emit(OpCodes.Call, typeof(ByteString).GetMethod(nameof(ByteString.ToByteArray), Array.Empty<Type>()));
             ilGenerator.Emit(OpCodes.Br_S, endIfLabel);
             ilGenerator.MarkLabel(hasArrayLabel);
             ilGenerator.Emit(OpCodes.Ldloca, segmentLocal);
@@ -91,8 +100,8 @@ namespace Wodsoft.Protobuf.Generators
             ilGenerator.Emit(OpCodes.Ldarg_1);
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
             ilGenerator.Emit(OpCodes.Newobj, typeof(ReadOnlyMemory<byte>).GetConstructor(new Type[] { typeof(byte[]) }));
-            ilGenerator.Emit(OpCodes.Call, typeof(UnsafeByteOperations).GetMethod("UnsafeWrap", BindingFlags.Public | BindingFlags.Static));
-            ilGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod(nameof(WriteContext.WriteBytes)));
+            ilGenerator.Emit(OpCodes.Call, typeof(UnsafeByteOperations).GetMethod(nameof(UnsafeByteOperations.UnsafeWrap), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(ReadOnlyMemory<byte>) }, null));
+            ilGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod(nameof(WriteContext.WriteBytes), new Type[] { typeof(ByteString) }));
         }
 
         /// <inheritdoc/>

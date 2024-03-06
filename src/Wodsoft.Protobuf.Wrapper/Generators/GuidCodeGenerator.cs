@@ -19,17 +19,17 @@ namespace Wodsoft.Protobuf.Generators
         public override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
             ilGenerator.Emit(OpCodes.Ldloca, valueVariable);
-            ilGenerator.Emit(OpCodes.Call, typeof(Guid).GetMethod("ToByteArray"));
-            ilGenerator.Emit(OpCodes.Call, typeof(ByteString).GetMethod("CopyFrom", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(byte[]) }, null));
-            ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeBytesSize), BindingFlags.Static | BindingFlags.Public));
+            ilGenerator.Emit(OpCodes.Call, typeof(Guid).GetMethod(nameof(Guid.ToByteArray), Array.Empty<Type>()));
+            ilGenerator.Emit(OpCodes.Call, typeof(ByteString).GetMethod(nameof(ByteString.CopyFrom), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(byte[]) }, null));
+            ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeBytesSize), BindingFlags.Static | BindingFlags.Public, null, new Type[] { typeof(ByteString) }, null));
         }
 
         /// <inheritdoc/>
         public override void GenerateReadCode(ILGenerator ilGenerator)
         {
             ilGenerator.Emit(OpCodes.Ldarg_1);
-            ilGenerator.Emit(OpCodes.Call, typeof(ParseContext).GetMethod(nameof(ParseContext.ReadBytes)));
-            ilGenerator.Emit(OpCodes.Call, typeof(ByteString).GetMethod("ToByteArray"));
+            ilGenerator.Emit(OpCodes.Call, typeof(ParseContext).GetMethod(nameof(ParseContext.ReadBytes), Array.Empty<Type>()));
+            ilGenerator.Emit(OpCodes.Call, typeof(ByteString).GetMethod(nameof(ByteString.ToByteArray), Array.Empty<Type>()));
             ilGenerator.Emit(OpCodes.Newobj, typeof(Guid).GetConstructor(new Type[] { typeof(byte[]) }));
         }
 
@@ -48,9 +48,9 @@ namespace Wodsoft.Protobuf.Generators
             //Write bool value
             ilGenerator.Emit(OpCodes.Ldarg_1);
             ilGenerator.Emit(OpCodes.Ldloca, valueVariable);
-            ilGenerator.Emit(OpCodes.Call, typeof(Guid).GetMethod("ToByteArray"));
-            ilGenerator.Emit(OpCodes.Call, typeof(ByteString).GetMethod("CopyFrom", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(byte[]) }, null));
-            ilGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod(nameof(WriteContext.WriteBytes)));
+            ilGenerator.Emit(OpCodes.Call, typeof(Guid).GetMethod(nameof(Guid.ToByteArray), Array.Empty<Type>()));
+            ilGenerator.Emit(OpCodes.Call, typeof(ByteString).GetMethod(nameof(ByteString.CopyFrom), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(byte[]) }, null));
+            ilGenerator.Emit(OpCodes.Call, typeof(WriteContext).GetMethod(nameof(WriteContext.WriteBytes), new Type[] { typeof(ByteString) }));
         }
 
         /// <inheritdoc/>

@@ -20,9 +20,17 @@ namespace Wodsoft.Protobuf.Generators
         /// <inheritdoc/>
         public override void GenerateCalculateSizeCode(ILGenerator ilGenerator, LocalBuilder valueVariable)
         {
-            ilGenerator.Emit(OpCodes.Ldloca, valueVariable);
-            ilGenerator.Emit(OpCodes.Call, typeof(Guid).GetMethod("ToByteArray"));
-            ilGenerator.Emit(OpCodes.Call, typeof(ByteString).GetMethod("CopyFrom", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(byte[]) }, null));
+            ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
+            ilGenerator.Emit(OpCodes.Call, typeof(decimal).GetMethod(nameof(decimal.GetBits), new Type[] { typeof(decimal) }));
+            ilGenerator.Emit(OpCodes.Newobj, typeof(ReadOnlySpan<int>).GetConstructor(new Type[] { typeof(int[]) }));
+#if NETSTANDARD2_1
+            ilGenerator.Emit(OpCodes.Call, typeof(MemoryMarshal).GetMethod(nameof(MemoryMarshal.AsBytes), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(Span<>).MakeGenericType(Type.MakeGenericMethodParameter(0)) }, null).MakeGenericMethod(typeof(int)));
+#else
+            ilGenerator.Emit(OpCodes.Call, typeof(MemoryMarshal).GetMethods(BindingFlags.Public | BindingFlags.Static).FirstOrDefault(t => t.Name == nameof(MemoryMarshal.AsBytes)
+                && t.IsGenericMethodDefinition && t.GetParameters().Length == 1 && t.GetParameters()[0].ParameterType.IsGenericType && t.GetParameters()[0].ParameterType.GetGenericTypeDefinition() == typeof(Span<>))
+                .MakeGenericMethod(typeof(int)));
+#endif
+            ilGenerator.Emit(OpCodes.Call, typeof(ByteString).GetMethod("CopyFrom", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(ReadOnlySpan<byte>) }, null));
             ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeBytesSize), BindingFlags.Static | BindingFlags.Public));
         }
 #if NETSTANDARD2_0
@@ -64,7 +72,7 @@ namespace Wodsoft.Protobuf.Generators
         /// <inheritdoc/>
         protected override int CalculateSize(decimal value)
         {
-            return CodedOutputStream.ComputeBytesSize(ByteString.CopyFrom(MemoryMarshal.Cast<int, byte>(decimal.GetBits(value))));
+            return CodedOutputStream.ComputeBytesSize(ByteString.CopyFrom(MemoryMarshal.AsBytes<int>(decimal.GetBits(value))));
         }
 
         /// <inheritdoc/>
@@ -89,7 +97,7 @@ namespace Wodsoft.Protobuf.Generators
         /// <inheritdoc/>
         protected override void WriteValue(ref WriteContext context, decimal value)
         {
-            context.WriteBytes(ByteString.CopyFrom(MemoryMarshal.Cast<int, byte>(decimal.GetBits(value))));
+            context.WriteBytes(ByteString.CopyFrom(MemoryMarshal.AsBytes<int>(decimal.GetBits(value))));
         }
     }
 }
