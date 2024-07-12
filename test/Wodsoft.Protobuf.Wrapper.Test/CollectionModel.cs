@@ -11,6 +11,8 @@ namespace Wodsoft.Protobuf.Wrapper.Test
 
         public List<string> StringList2 { get; set; }
 
+        public string[] StringArray { get; set; }
+
         public IList<int> IntList { get; set; }
 
         public IEnumerable<int> IntEnumerable { get; set; }

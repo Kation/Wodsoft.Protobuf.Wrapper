@@ -264,6 +264,22 @@ namespace Wodsoft.Protobuf.Wrapper.Test
             Assert.Equal<TimeSpan>(model.TimeSpanCollection, model2.TimeSpanCollection);
         }
 
+        //[Fact]
+        //public void Empty_Class_Test()
+        //{
+        //    CollectionModel model = new CollectionModel();
+        //    //model.StringArray = new string[1];
+        //    model.StringList2 = new List<string>();
+        //    model.StringList2.Add("4");
+        //    model.StringList2.Add(null);
+        //    model.StringList2.Add("6");
+
+        //    var data = Message.SerializeToBytes(model);
+        //    var model2 = Message<CollectionModel>.DeserializeFromBytes(data);
+
+        //    Assert.Equal(model.StringList, model2.StringList);
+        //}
+
         [Fact]
         public void Dictionary_Class_Test()
         {
@@ -335,6 +351,22 @@ namespace Wodsoft.Protobuf.Wrapper.Test
             Assert.Equal(mode1.Count, model2.Count);
             Assert.Equal(mode1["a"], model2["a"]);
             Assert.Equal(mode1["b"], model2["b"]);
+        }
+
+        [Fact]
+        public void Dictionary_Value3_Test()
+        {
+            var mode1 = new Dictionary<string, List<string>>();
+            mode1["a"] = new List<string>();
+
+            MemoryStream stream = new MemoryStream();
+            Message.Serialize(stream, mode1);
+
+            stream.Position = 0;
+            var model2 = Message<Dictionary<string, string[]>>.Deserialize(stream);
+
+            Assert.Equal(mode1.Count, model2.Count);
+            Assert.Equal(mode1["a"], model2["a"]);
         }
 
         [Fact]

@@ -55,7 +55,7 @@ namespace Wodsoft.Protobuf.Primitives
             }
             else if (isCollection)
             {
-                var valueCodeGenerator = (ICodeGenerator<TValue>)Activator.CreateInstance(typeof(CollectionCodeGenerator<,>).MakeGenericType(valueType.GetElementType(), valueType));
+                var valueCodeGenerator = (ICodeGenerator<TValue>)Activator.CreateInstance(typeof(CollectionCodeGenerator<,>).MakeGenericType(valueType, typeof(TValue)));
                 _ValueTag = WireFormat.MakeTag(2, valueCodeGenerator.WireType);
                 _ValueFieldCodec = valueCodeGenerator.CreateFieldCodec(2);
             }
