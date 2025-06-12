@@ -23,7 +23,7 @@ namespace Wodsoft.Protobuf.Generators
             ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
             ilGenerator.Emit(OpCodes.Call, typeof(decimal).GetMethod(nameof(decimal.GetBits), new Type[] { typeof(decimal) }));
             ilGenerator.Emit(OpCodes.Newobj, typeof(ReadOnlySpan<int>).GetConstructor(new Type[] { typeof(int[]) }));
-#if NETSTANDARD2_1
+#if NETSTANDARD2_1 || NET6_0_OR_GREATER
             ilGenerator.Emit(OpCodes.Call, typeof(MemoryMarshal).GetMethod(nameof(MemoryMarshal.AsBytes), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(Span<>).MakeGenericType(Type.MakeGenericMethodParameter(0)) }, null).MakeGenericMethod(typeof(int)));
 #else
             ilGenerator.Emit(OpCodes.Call, typeof(MemoryMarshal).GetMethods(BindingFlags.Public | BindingFlags.Static).FirstOrDefault(t => t.Name == nameof(MemoryMarshal.AsBytes)

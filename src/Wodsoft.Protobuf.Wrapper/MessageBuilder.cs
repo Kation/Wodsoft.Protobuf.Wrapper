@@ -46,6 +46,10 @@ namespace Wodsoft.Protobuf
             MessageBuilder<byte[]>.CodeGenerator = new ByteArrayCodeGenerator();
             MessageBuilder<ByteString>.CodeGenerator = new ByteStringCodeGenerator();
             MessageBuilder<decimal>.CodeGenerator = new DecimalCodeGenerator();
+#if NET6_0_OR_GREATER
+            MessageBuilder<DateOnly>.CodeGenerator = new DateOnlyCodeGenerator();
+            MessageBuilder<TimeOnly>.CodeGenerator = new TimeOnlyCodeGenerator();
+#endif
 
             MessageBuilder<bool?>.CodeGenerator = new NullableCodeGenerator<bool>(new BooleanCodeGenerator());
             MessageBuilder<byte?>.CodeGenerator = new NullableCodeGenerator<byte>(new ByteCodeGenerator());
@@ -63,6 +67,10 @@ namespace Wodsoft.Protobuf
             MessageBuilder<TimeSpan?>.CodeGenerator = new NullableCodeGenerator<TimeSpan>(new TimeSpanCodeGenerator());
             MessageBuilder<Guid?>.CodeGenerator = new NullableCodeGenerator<Guid>(new GuidCodeGenerator());
             MessageBuilder<decimal?>.CodeGenerator = new NullableCodeGenerator<decimal>(new DecimalCodeGenerator());
+#if NET6_0_OR_GREATER
+            MessageBuilder<DateOnly?>.CodeGenerator = new NullableCodeGenerator<DateOnly>(new DateOnlyCodeGenerator());
+            MessageBuilder<TimeOnly?>.CodeGenerator = new NullableCodeGenerator<TimeOnly>(new TimeOnlyCodeGenerator());
+#endif
         }
 
         internal static readonly AssemblyBuilder AssemblyBuilder;
@@ -168,7 +176,7 @@ namespace Wodsoft.Protobuf
                 staticILGenerator.Emit(OpCodes.Castclass, typeof(MethodInfo));
                 staticILGenerator.Emit(OpCodes.Call, typeof(Delegate).GetMethod(nameof(Delegate.CreateDelegate), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(Type), typeof(MethodInfo) }, null));
                 staticILGenerator.Emit(OpCodes.Newobj, typeof(MessageParser<>).MakeGenericType(elementType).GetConstructor(new Type[] { typeof(Func<>).MakeGenericType(elementType) }));
-#if NETSTANDARD2_1
+#if NETSTANDARD2_1 || NET6_0_OR_GREATER
                 staticILGenerator.Emit(OpCodes.Call, typeof(FieldCodec).GetMethod(nameof(FieldCodec.ForMessage), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(uint), typeof(MessageParser<>).MakeGenericType(Type.MakeGenericMethodParameter(0)) }, null).MakeGenericMethod(elementType));
 #else
                 staticILGenerator.Emit(OpCodes.Call, typeof(FieldCodec).GetMethods().First(t => t.Name == nameof(FieldCodec.ForMessage)

@@ -51,18 +51,18 @@ namespace Wodsoft.Protobuf.Generators
             var endIfLabel = ilGenerator.DefineLabel();
             ilGenerator.Emit(OpCodes.Ldarg_1);
             ilGenerator.Emit(OpCodes.Call, typeof(ParseContext).GetMethod(nameof(ParseContext.ReadBytes), Array.Empty<Type>()));
+            ilGenerator.Emit(OpCodes.Dup);
             ilGenerator.Emit(OpCodes.Stloc, bytesLocal);
-            ilGenerator.Emit(OpCodes.Ldloc, bytesLocal);
             ilGenerator.Emit(OpCodes.Call, typeof(ByteString).GetProperty("Memory").GetMethod);
             ilGenerator.Emit(OpCodes.Ldloca, segmentLocal);
-#if NETSTANDARD2_1
+#if NETSTANDARD2_1 || NET6_0_OR_GREATER
             ilGenerator.Emit(OpCodes.Call, typeof(MemoryMarshal).GetMethod(nameof(MemoryMarshal.TryGetArray), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(ReadOnlyMemory<>).MakeGenericType(Type.MakeGenericMethodParameter(0)), typeof(ArraySegment<>).MakeGenericType(Type.MakeGenericMethodParameter(0)).MakeByRefType() }, null).MakeGenericMethod(typeof(byte)));
 #else
-ilGenerator.Emit(OpCodes.Call, typeof(MemoryMarshal).GetMethods()
+            ilGenerator.Emit(OpCodes.Call, typeof(MemoryMarshal).GetMethods()
     .First(t=>t.Name == nameof(MemoryMarshal.TryGetArray)
         && t.IsGenericMethodDefinition && t.GetGenericArguments().Length == 1 && t.GetParameters().Length == 2
-        && t.GetParameters()[0].ParameterType.IsGenericTypeDefinition && t.GetParameters()[0].ParameterType.GetGenericTypeDefinition() == typeof(ReadOnlyMemory<>)
-        && t.GetParameters()[1].ParameterType.IsGenericTypeDefinition && t.GetParameters()[1].ParameterType.GetGenericTypeDefinition() == typeof(ArraySegment<>)).MakeGenericMethod(typeof(byte)));
+        && t.GetParameters()[0].ParameterType.IsGenericType && t.GetParameters()[0].ParameterType.GetGenericTypeDefinition() == typeof(ReadOnlyMemory<>)
+        && t.GetParameters()[1].ParameterType.HasElementType && t.GetParameters()[1].ParameterType.GetElementType().IsGenericType && t.GetParameters()[1].ParameterType.GetElementType().GetGenericTypeDefinition() == typeof(ArraySegment<>)).MakeGenericMethod(typeof(byte)));
 #endif
             ilGenerator.Emit(OpCodes.Brtrue_S, hasArrayLabel);
             ilGenerator.Emit(OpCodes.Ldloc, bytesLocal);
