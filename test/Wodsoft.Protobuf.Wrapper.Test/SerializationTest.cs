@@ -816,6 +816,38 @@ namespace Wodsoft.Protobuf.Wrapper.Test
             }
         }
 
+#if NET8_0_OR_GREATER
+        [Fact]
+        public void Primitives_Array_Test2()
+        {
+            {
+                MemoryStream stream = new MemoryStream();
+                List<SimplyModel3> list = new List<SimplyModel3>
+                {
+                    new SimplyModel3
+                    {
+                        DateTimeOffsetValue = new DateTimeOffset(2025,1,1,0,0,0,TimeSpan.FromHours(8)),
+                        DateOnlyValue = new DateOnly(2025,1,1),
+                        PointValue = new PointModel
+                        {
+                            X = 1.1,
+                            Y = 2.2
+                        }
+                    }
+                };
+                Message.Serialize(stream, list);
+                stream.Position = 0;
+                var result = Message<SimplyModel3[]>.Deserialize(stream);
+                Assert.Equal(list[0].DateTimeOffsetValue, result[0].DateTimeOffsetValue);
+                Assert.Equal(list[0].DateOnlyValue, result[0].DateOnlyValue);
+                Assert.Equal(list[0].PointValue, result[0].PointValue);
+            }
+            {
+                Assert.Equal(0, ((IMessage)new ArrayMessage<SimplyModel>()).CalculateSize());
+            }
+        }
+#endif
+
         [Fact]
         public void Loop_Test()
         {

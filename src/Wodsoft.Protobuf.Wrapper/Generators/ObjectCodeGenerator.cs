@@ -36,24 +36,34 @@ namespace Wodsoft.Protobuf.Generators
 
             //var lengthVariable = ilGenerator.DeclareLocal(typeof(int));
 
-            var next = ilGenerator.DefineLabel();
-            var end = ilGenerator.DefineLabel();
-            ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
-            ilGenerator.Emit(OpCodes.Brtrue, next);
-            ilGenerator.Emit(OpCodes.Ldc_I4_0);
-            ilGenerator.Emit(OpCodes.Br, end);
-            ilGenerator.MarkLabel(next);
-            ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
-            ilGenerator.Emit(OpCodes.Call, computeSizeMethod);
-            ilGenerator.Emit(OpCodes.Dup);
-            //ilGenerator.Emit(OpCodes.Stloc, lengthVariable);
-            //ilGenerator.Emit(OpCodes.Ldloc, lengthVariable);
-            //ilGenerator.Emit(OpCodes.Ldloc, lengthVariable);
-            ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeLengthSize), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(int) }, null));
-            ilGenerator.Emit(OpCodes.Add_Ovf);
-            ilGenerator.Emit(OpCodes.Ldc_I4, CodedOutputStream.ComputeTagSize(fieldNumber));
-            ilGenerator.Emit(OpCodes.Add_Ovf);
-            ilGenerator.MarkLabel(end);
+            if (typeof(T).IsValueType)
+            {
+                ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
+                ilGenerator.Emit(OpCodes.Call, computeSizeMethod);
+                ilGenerator.Emit(OpCodes.Dup);
+                ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeLengthSize), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(int) }, null));
+                ilGenerator.Emit(OpCodes.Add_Ovf);
+                ilGenerator.Emit(OpCodes.Ldc_I4, CodedOutputStream.ComputeTagSize(fieldNumber));
+                ilGenerator.Emit(OpCodes.Add_Ovf);
+            }
+            else
+            {
+                var next = ilGenerator.DefineLabel();
+                var end = ilGenerator.DefineLabel();
+                ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
+                ilGenerator.Emit(OpCodes.Brtrue, next);
+                ilGenerator.Emit(OpCodes.Ldc_I4_0);
+                ilGenerator.Emit(OpCodes.Br, end);
+                ilGenerator.MarkLabel(next);
+                ilGenerator.Emit(OpCodes.Ldloc, valueVariable);
+                ilGenerator.Emit(OpCodes.Call, computeSizeMethod);
+                ilGenerator.Emit(OpCodes.Dup);
+                ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeLengthSize), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(int) }, null));
+                ilGenerator.Emit(OpCodes.Add_Ovf);
+                ilGenerator.Emit(OpCodes.Ldc_I4, CodedOutputStream.ComputeTagSize(fieldNumber));
+                ilGenerator.Emit(OpCodes.Add_Ovf);
+                ilGenerator.MarkLabel(end);
+            }
         }
 
         /// <inheritdoc/>
@@ -95,7 +105,7 @@ namespace Wodsoft.Protobuf.Generators
                 ilGenerator.Emit(OpCodes.Call, computeSizeMethod);
                 ilGenerator.Emit(OpCodes.Stloc, lengthVariable);
                 ilGenerator.Emit(OpCodes.Ldloc, lengthVariable);
-                ilGenerator.Emit(OpCodes.Ldloc, lengthVariable);
+                ilGenerator.Emit(OpCodes.Dup);
                 ilGenerator.Emit(OpCodes.Call, typeof(CodedOutputStream).GetMethod(nameof(CodedOutputStream.ComputeLengthSize), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(int) }, null));
                 ilGenerator.Emit(OpCodes.Add_Ovf);
                 ilGenerator.Emit(OpCodes.Ret);

@@ -14,6 +14,9 @@ namespace Wodsoft.Protobuf.Wrapper.Test
         {
             MessageBuilder.GetMessageType<SimplyModel>();
             MessageBuilder.GetMessageType<SimplyModel2>();
+#if NET8_0_OR_GREATER
+            MessageBuilder.GetMessageType<SimplyModel3>();
+#endif
             MessageBuilder.GetMessageType<NullableModel>();
             MessageBuilder.GetMessageType<EnumModel>();
             MessageBuilder.GetMessageType<CollectionModel>();

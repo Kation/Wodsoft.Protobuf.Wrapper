@@ -578,6 +578,41 @@ namespace Wodsoft.Protobuf
                             computeSizeILGenerator.Emit(OpCodes.Stloc, sizeVariable);
                         }
                     }
+                    else if (Nullable.GetUnderlyingType(field.FieldType) != null)
+                    {
+                        var underlyingType = Nullable.GetUnderlyingType(field.FieldType);
+
+                        //ComputeSize
+                        {
+                            //IL: if (value.HasValue)
+                            computeSizeILGenerator.Emit(OpCodes.Ldloca, computeSizeValueVariable);
+                            computeSizeILGenerator.Emit(OpCodes.Call, field.FieldType.GetProperty("HasValue").GetMethod);
+                            computeSizeILGenerator.Emit(OpCodes.Brfalse, computeSizeEnd);
+                        }
+                        //Write
+                        {
+                            //IL: if (value.HasValue)
+                            writeILGenerator.Emit(OpCodes.Ldloca, writeValueVariable);
+                            writeILGenerator.Emit(OpCodes.Call, field.FieldType.GetProperty("HasValue").GetMethod);
+                            writeILGenerator.Emit(OpCodes.Brfalse, writeEnd);
+                        }
+
+                        codeGenerator = (ICodeGenerator)Activator.CreateInstance(typeof(ObjectCodeGenerator<>).MakeGenericType(field.FieldType));
+
+                        codeGenerator.GenerateCalculateSizeCode(computeSizeILGenerator, computeSizeValueVariable, field.FieldNumber);
+                        computeSizeILGenerator.Emit(OpCodes.Ldloc, sizeVariable);
+                        computeSizeILGenerator.Emit(OpCodes.Add_Ovf);
+                        computeSizeILGenerator.Emit(OpCodes.Stloc, sizeVariable);
+
+                        codeGenerator.GenerateWriteCode(writeILGenerator, writeValueVariable, field.FieldNumber);
+                        readILGenerator.Emit(OpCodes.Ldarg_0);
+                        if (sourceFieldInfo.FieldType.IsValueType)
+                            readILGenerator.Emit(OpCodes.Ldflda, sourceFieldInfo);
+                        else
+                            readILGenerator.Emit(OpCodes.Ldfld, sourceFieldInfo);
+                        codeGenerator.GenerateReadCode(readILGenerator);
+                        field.GenerateWriteFieldCode(readILGenerator);
+                    }
                     else
                     {
                         if (!field.FieldType.IsValueType)
